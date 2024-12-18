@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
+import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+
   const handleGoogleSignIn = async () => {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -16,6 +19,7 @@ function LoginPage() {
       } else {
         setMessage('SignUp successful!');
         console.log("User signed in with Google:", data);
+        navigate('/');
       }
     } catch (err: any) {
     setMessage(`Unexpected error: ${err.message}`);

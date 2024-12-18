@@ -1,19 +1,24 @@
-import './App.css';
-import { useState, useEffect } from 'react';
-import LoginPage from './components/LoginPage';
-import { supabase } from './supabaseClient';
-import { User } from '@supabase/auth-js'; // Import the User type
+import "./App.css";
+import SamplePage from "./components/SamplePage";
+import HomePage from "./components/HomePage";
+import LoginPage from "./components/LoginPage";
+import { useEffect } from "react";
+import { supabase } from "./supabaseClient";
+import { useDispatch } from "react-redux";
+import { setUserEmail } from "./redux/slices/authSlice";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getUser();
       if (error) {
-        console.error('Error fetching user:', error.message);
-      } else if (data?.user) {
-        setUser(data.user); // Use the Supabase User type
+        console.error("Error fetching user:", error.message);
+      } else if (data?.user?.email) {
+        dispatch(setUserEmail(data.user.email));
+        localStorage.setItem("UserEmail", data.user.email);
       }
     };
 
@@ -22,13 +27,15 @@ function App() {
 
   return (
     <>
-      {user ? (
-        <div>
-          <h1>Welcome, {user.email ?? 'Guest'}!</h1> {/* Handle undefined email */}
-        </div>
-      ) : (
-        <LoginPage />
-      )}
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage/>}/>
+          <Route path="/sample" element={<SamplePage/>}/>
+          <Route path="/login" element={<LoginPage/>}/>
+        </Routes>
+
+      </BrowserRouter>
+      
     </>
   );
 }
