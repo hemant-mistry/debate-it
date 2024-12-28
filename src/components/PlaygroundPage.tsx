@@ -1,52 +1,21 @@
-import React, { useEffect, useState } from "react";
-import * as signalR from "@microsoft/signalr";
 import { useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
+import { setUsers } from "../redux/slices/roomSlice";
 
 function PlaygroundPage() {
+  const dispatch = useDispatch();
   const { roomKey } = useParams<{ roomKey: string }>();
-  const [connection, setConnection] = useState<signalR.HubConnection | null>(
-    null
-  );
-
-  const [uniqueUsers, setUniqueUsers] = useState<string[]>([]);
-  const userEmail = localStorage.getItem("UserEmail");
-
+  const users = useSelector((state: any) => state.room.users);
   useEffect(() => {
-    if (userEmail) {
-      const newConnection = new signalR.HubConnectionBuilder()
-        .withUrl(`${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/roomhub`)
-        .withAutomaticReconnect()
-        .build();
-      setConnection(newConnection);
-    } else {
-      console.error("User email is not available");
+    const persistedUsers = JSON.parse(
+      localStorage.getItem("roomUsers") || "[]"
+    );
+    if (users.length === 0 && persistedUsers.length > 0) {
+      dispatch(setUsers(persistedUsers));
     }
-  }, [userEmail]);
+  }, [users, dispatch]);
 
-  useEffect(() => {
-      if (connection) {
-        connection
-          .start()
-          .then(() => {
-            console.log("Connected to SignalR hub");
-            connection.on("SendMessageToClient", (message: string) => {
-              console.log(message);
-            });
-          })
-          .catch((err) => console.error("Connection failed: ", err));
-      }
-    }, [connection]);
-
-  const handleFetchUniqueUser = () => {
-    if (connection) {
-      connection
-        .invoke("GetUsersInRoom", roomKey)
-        .then((users: string[]) => {
-          setUniqueUsers(users);
-        })
-        .catch((err) => console.error("GetUsersInRoom failed: ", err));
-    }
-  };
   return (
     <div>
       <h1>Joined Room: {roomKey}</h1>
@@ -64,15 +33,9 @@ function PlaygroundPage() {
           for a spin, but something goes hilariously wrong.
         </div>
 
-        <button
-          className="btn btn-primary btn-sm mt-4"
-          onClick={handleFetchUniqueUser}
-        >
-          Fetch unique users
-        </button>
         <ul>
-          {uniqueUsers.map((user, index) => (
-            <li key={index}>{user}</li>
+          {users.map((user: string) => (
+            <li key={user}>{user}</li>
           ))}
         </ul>
       </div>

@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as signalR from "@microsoft/signalr";
+import { useDispatch } from "react-redux";
+import { setUsers } from "../redux/slices/roomSlice";
 
 function HomePage() {
   const [isJoinRoom, setIsJoinRoom] = useState(false);
@@ -9,8 +11,8 @@ function HomePage() {
   const [topic, setTopic] = useState("");
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const userEmail = localStorage.getItem("UserEmail");
-  const inferredName = "duality";
 
   useEffect(() => {
     if (userEmail) {
@@ -30,13 +32,13 @@ function HomePage() {
         .start()
         .then(() => {
           console.log("Connected to SignalR hub");
-          connection.on("SendMessageToClient", (message: string) => {
-            console.log(message);
+          connection.on("SendUpdatedUserList", (users: string[]) => {
+            dispatch(setUsers(users));
           });
         })
         .catch((err) => console.error("Connection failed: ", err));
     }
-  }, [connection]);
+  }, [connection, dispatch]);
 
   const handleJoinRoom = async () => {
     const response = await fetch(
@@ -82,7 +84,7 @@ function HomePage() {
       const createdRoomKey = data.room.roomKey;
       if (connection) {
         connection
-          .invoke("JoinRoom", createdRoomKey, userEmail, inferredName)
+          .invoke("JoinRoom", createdRoomKey, userEmail, playerName)
           .then(() => {
             console.log("Created and joined room successfully");
             navigate(`/hub/${createdRoomKey}`);
