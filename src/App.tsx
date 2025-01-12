@@ -7,6 +7,7 @@ import { supabase } from "./supabaseClient";
 import { useDispatch } from "react-redux";
 import { setUserEmail } from "./redux/slices/authSlice";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import PlaygroundPage from "./components/PlaygroundPage";
 
 function App() {
   const dispatch = useDispatch();
@@ -24,7 +25,7 @@ function App() {
 
     fetchUser();
   }, []);
-
+ 
   return (
     <>
       <BrowserRouter>
@@ -32,6 +33,7 @@ function App() {
           <Route path="/" element={<HomePage/>}/>
           <Route path="/sample" element={<SamplePage/>}/>
           <Route path="/login" element={<LoginPage/>}/>
+          <Route path="/hub/:roomKey" element={<PlaygroundPage/>}/>
         </Routes>
 
       </BrowserRouter>
