@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { setUsers, toggleUserReady } from "../redux/slices/roomSlice";
+import { setUsers } from "../redux/slices/roomSlice";
 import * as signalR from "@microsoft/signalr";
 import { RootState } from "../redux/store"; // Ensure you have a RootState type defined in your store
 import { UserDetails } from "../types/User";
