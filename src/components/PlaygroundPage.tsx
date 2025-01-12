@@ -1,20 +1,58 @@
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
-import { setUsers } from "../redux/slices/roomSlice";
+import { useEffect, useState } from "react";
+import { setUsers, toggleUserReady } from "../redux/slices/roomSlice";
+import * as signalR from "@microsoft/signalr";
+import { RootState } from "../redux/store"; // Ensure you have a RootState type defined in your store
+import { UserDetails } from "../types/User";
 
 function PlaygroundPage() {
   const dispatch = useDispatch();
   const { roomKey } = useParams<{ roomKey: string }>();
-  const users = useSelector((state: any) => state.room.users);
+  const users = useSelector((state: RootState) => state.room.users);
+  const userEmail = localStorage.getItem("UserEmail");
+  const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
+
   useEffect(() => {
-    const persistedUsers = JSON.parse(
-      localStorage.getItem("roomUsers") || "[]"
-    );
-    if (users.length === 0 && persistedUsers.length > 0) {
-      dispatch(setUsers(persistedUsers));
+    if (userEmail) {
+      const newConnection = new signalR.HubConnectionBuilder()
+        .withUrl(`${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/roomhub`)
+        .withAutomaticReconnect()
+        .build();
+      setConnection(newConnection);
+    } else {
+      console.error("User email is not available");
     }
-  }, [users, dispatch]);
+  }, [userEmail]);
+
+  useEffect(() => {
+    if (connection) {
+      connection
+        .start()
+        .then(() => {
+          console.log("Connected to SignalR hub");
+          connection.on("SendUpdatedUserList", (users: UserDetails[]) => {
+            dispatch(setUsers(users));
+          });
+        })
+        .catch((err) => console.error("Connection failed: ", err));
+    }
+  }, [connection, dispatch]);
+
+  const handleReadyStatus = () => {
+        if(connection){
+          connection
+          .invoke("UpdateReadyStatus", userEmail, roomKey)
+          .then(()=>{
+            console.log("Player status updated successfully!");
+            connection.on("SendUpdatedUserList", (users: UserDetails[]) => {
+              console.log("Updated user list", users);
+              dispatch(setUsers(users));
+            });
+          })
+        }
+
+    };
 
   return (
     <div>
@@ -34,8 +72,13 @@ function PlaygroundPage() {
         </div>
 
         <ul>
-          {users.map((user: string) => (
-            <li key={user}>{user}</li>
+          {users.map((user) => (
+            user && (
+              <li key={user.inferredName} className="mt-4">
+                {user.inferredName}: <span style={{ color: user .isReady ? "green" : "red" }}>{user.isReady ? "Ready" : "Not Ready"}</span>
+                <button className="btn btn-primary btn-xs mt-2" onClick={handleReadyStatus}>Ready to play</button>
+              </li>
+            )
           ))}
         </ul>
       </div>

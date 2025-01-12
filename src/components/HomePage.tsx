@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import * as signalR from "@microsoft/signalr";
 import { useDispatch } from "react-redux";
 import { setUsers } from "../redux/slices/roomSlice";
+import { UserDetails } from "../types/User";
 
 function HomePage() {
   const [isJoinRoom, setIsJoinRoom] = useState(false);
@@ -32,7 +33,7 @@ function HomePage() {
         .start()
         .then(() => {
           console.log("Connected to SignalR hub");
-          connection.on("SendUpdatedUserList", (users: string[]) => {
+          connection.on("SendUpdatedUserList", (users: UserDetails[]) => {
             dispatch(setUsers(users));
           });
         })
@@ -58,6 +59,10 @@ function HomePage() {
           .invoke("JoinRoom", roomKey, userEmail, playerName)
           .then(() => {
             console.log("Joined room successfully");
+            connection.on("SendUpdatedUserList", (users: UserDetails[]) => {
+              console.log("Joinedroom users", users);
+              dispatch(setUsers(users));
+            });
             navigate(`/hub/${roomKey}`);
           })
           .catch((err) => console.error("JoinRoom failed: ", err));
@@ -87,6 +92,7 @@ function HomePage() {
           .invoke("JoinRoom", createdRoomKey, userEmail, playerName)
           .then(() => {
             console.log("Created and joined room successfully");
+
             navigate(`/hub/${createdRoomKey}`);
           })
           .catch((err) => console.error("JoinRoom failed: ", err));
