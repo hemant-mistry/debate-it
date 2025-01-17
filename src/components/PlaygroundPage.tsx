@@ -13,6 +13,7 @@ function PlaygroundPage({signalRConnection}:PlaygroundPageProps) {
   const { roomKey } = useParams<{ roomKey: string }>();
   const users = useSelector((state: RootState) => state.room.users);
   const userEmail = localStorage.getItem("UserEmail");
+  const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
   const [isAllPlayerReady, setIsAllPlayerReady] = useState<boolean>(false);
 
 
@@ -25,9 +26,11 @@ function PlaygroundPage({signalRConnection}:PlaygroundPageProps) {
   }, [signalRConnection]);
 
   const handleReadyStatus = () => {
+    const newReadyStatus = !isPlayerReady;
+    setIsPlayerReady(newReadyStatus);
     if (signalRConnection) {
       signalRConnection
-        .invoke("UpdateReadyStatus", userEmail, roomKey)
+        .invoke("UpdateReadyStatus", userEmail, roomKey, newReadyStatus)
         .then(() => console.log("Player status updated successfully!"))
         .catch((err) => console.error("Error updating ready status: ", err));
     }
@@ -56,7 +59,7 @@ function PlaygroundPage({signalRConnection}:PlaygroundPageProps) {
                     className="btn btn-primary btn-xs mt-2"
                     onClick={handleReadyStatus}
                   >
-                    Ready to play
+                    {isPlayerReady? "Not ready" : "Ready"}
                   </button>
                 )}
               </li>
