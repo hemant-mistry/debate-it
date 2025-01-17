@@ -1,27 +1,38 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { RootState } from "../redux/store";
 
-
-interface PlaygroundPageProps{
+interface PlaygroundPageProps {
   signalRConnection: signalR.HubConnection | null;
 }
 
-function PlaygroundPage({signalRConnection}:PlaygroundPageProps) {
+type UserScenarioMapping = Record<string, string>;
+
+function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const { roomKey } = useParams<{ roomKey: string }>();
   const users = useSelector((state: RootState) => state.room.users);
   const userEmail = localStorage.getItem("UserEmail");
   const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
   const [isAllPlayerReady, setIsAllPlayerReady] = useState<boolean>(false);
-
+  const [isGameStarted, setIsGameStarted] = useState<boolean>();
+  const [userScenarios, setUserScenarios] = useState<UserScenarioMapping>({});
 
   useEffect(() => {
-    if(signalRConnection){
-      signalRConnection.on("SendAllPlayersReady", (allReady:boolean)=>{
-        setIsAllPlayerReady(allReady)
-      })
+    if (signalRConnection) {
+      signalRConnection.on("SendAllPlayersReady", (allReady: boolean) => {
+        setIsAllPlayerReady(allReady);
+      });
+
+      signalRConnection.on(
+        "SendScenarioInfo",
+        (userScenarios: UserScenarioMapping) => {
+          console.log("User scenario mapping list", userScenarios);
+          setUserScenarios(userScenarios);
+          setIsGameStarted(true);
+        }
+      );
     }
   }, [signalRConnection]);
 
@@ -36,10 +47,31 @@ function PlaygroundPage({signalRConnection}:PlaygroundPageProps) {
     }
   };
 
+  const handleStart = () => {
+    console.log("HandleStart function called");
+    if (signalRConnection) {
+      signalRConnection.invoke("StartGame", roomKey).then(() => {
+        console.log("SignalR Start Game triggered");
+      });
+    }
+  };
+
   return (
     <div>
       <h1>Joined Room: {roomKey}</h1>
-      <div className="scenario p-4">
+      {isGameStarted ? (
+        <div>
+          Game has started!
+          {Object.entries(userScenarios).map(([user, scenario]) => (
+            user === userEmail ? (
+              <div key={user}>
+                <strong>{user}</strong>: {scenario}
+              </div>
+            ) : null
+          ))}
+        </div>
+      ) : (
+        <div className="scenario p-4">
         <div className="scenario-header text-3xl">Scenario</div>
         <div className="scenario-description mt-2">
           You and your best friend accidentally stumble upon a time machine
@@ -59,7 +91,7 @@ function PlaygroundPage({signalRConnection}:PlaygroundPageProps) {
                     className="btn btn-primary btn-xs mt-2"
                     onClick={handleReadyStatus}
                   >
-                    {isPlayerReady? "Not ready" : "Ready"}
+                    {isPlayerReady ? "Not ready" : "Ready"}
                   </button>
                 )}
               </li>
@@ -68,10 +100,16 @@ function PlaygroundPage({signalRConnection}:PlaygroundPageProps) {
         </ul>
         <div>{isAllPlayerReady}</div>
         {isAllPlayerReady && (
-          <button className="btn btn-primary btn-sm mt-10">Start</button>
+          <button
+            className="btn btn-primary btn-sm mt-10"
+            onClick={handleStart}
+          >
+            Start
+          </button>
         )}
-
       </div>
+      )}
+      
     </div>
   );
 }
