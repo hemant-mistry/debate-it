@@ -8,7 +8,7 @@ interface PlaygroundPageProps {
   signalRConnection: signalR.HubConnection | null;
 }
 
-type UserScenarioMapping = Record<string, string>;
+type UserScenarioMapping = Record<string, string[]>;
 
 function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const { roomKey } = useParams<{ roomKey: string }>();
@@ -18,7 +18,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [isAllPlayerReady, setIsAllPlayerReady] = useState<boolean>(false);
   const [isGameStarted, setIsGameStarted] = useState<boolean>();
   const [userScenarios, setUserScenarios] = useState<UserScenarioMapping>({});
-
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   useEffect(() => {
     if (signalRConnection) {
       signalRConnection.on("SendAllPlayersReady", (allReady: boolean) => {
@@ -56,60 +56,76 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
   };
 
+  const handleNextQuestion = () => {
+    if (userEmail && userScenarios[userEmail]) {
+      const totalQuestions = userScenarios[userEmail].length;
+      setCurrentQuestionIndex((prevIndex) => (prevIndex + 1) % totalQuestions);
+    }
+  };
+
   return (
     <div>
       <h1>Joined Room: {roomKey}</h1>
       {isGameStarted ? (
         <div>
           Game has started!
-          {Object.entries(userScenarios).map(([user, scenario]) => (
+          {Object.entries(userScenarios).map(([user, scenarios]) =>
             user === userEmail ? (
               <div key={user}>
-                <strong>{user}</strong>: {scenario}
+                <strong>{user}</strong>:
+                <div className="question-box mt-4">
+                  <h3>Question:</h3>
+                  <p>{scenarios[currentQuestionIndex]}</p>
+                  <button
+                    className="btn btn-secondary btn-sm mt-4"
+                    onClick={handleNextQuestion}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             ) : null
-          ))}
+          )}
         </div>
       ) : (
         <div className="scenario p-4">
-        <div className="scenario-header text-3xl">Scenario</div>
-        <div className="scenario-description mt-2">
-          You and your best friend accidentally stumble upon a time machine
-          disguised as a porta-potty at a music festival. You decide to take it
-          for a spin, but something goes hilariously wrong.
-        </div>
-        <ul>
-          {users.map((user) =>
-            user ? (
-              <li key={user.inferredName} className="mt-4">
-                {user.inferredName}:{" "}
-                <span style={{ color: user.isReady ? "green" : "red" }}>
-                  {user.isReady ? "Ready" : "Not Ready"}
-                </span>
-                {user.userEmail === userEmail && (
-                  <button
-                    className="btn btn-primary btn-xs mt-2"
-                    onClick={handleReadyStatus}
-                  >
-                    {isPlayerReady ? "Not ready" : "Ready"}
-                  </button>
-                )}
-              </li>
-            ) : null
+          <div className="scenario-header text-3xl">Scenario</div>
+          <div className="scenario-description mt-2">
+            You and your best friend accidentally stumble upon a time machine
+            disguised as a porta-potty at a music festival. You decide to take
+            it for a spin, but something goes hilariously wrong.
+          </div>
+          <ul>
+            {users.map((user) =>
+              user ? (
+                <li key={user.inferredName} className="mt-4">
+                  {user.inferredName}:{" "}
+                  <span style={{ color: user.isReady ? "green" : "red" }}>
+                    {user.isReady ? "Ready" : "Not Ready"}
+                  </span>
+                  {user.userEmail === userEmail && (
+                    <button
+                      className="btn btn-primary btn-xs mt-2"
+                      onClick={handleReadyStatus}
+                    >
+                      {isPlayerReady ? "Not ready" : "Ready"}
+                    </button>
+                  )}
+                </li>
+              ) : null
+            )}
+          </ul>
+          <div>{isAllPlayerReady}</div>
+          {isAllPlayerReady && (
+            <button
+              className="btn btn-primary btn-sm mt-10"
+              onClick={handleStart}
+            >
+              Start
+            </button>
           )}
-        </ul>
-        <div>{isAllPlayerReady}</div>
-        {isAllPlayerReady && (
-          <button
-            className="btn btn-primary btn-sm mt-10"
-            onClick={handleStart}
-          >
-            Start
-          </button>
-        )}
-      </div>
+        </div>
       )}
-      
     </div>
   );
 }
