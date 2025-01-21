@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import * as signalR from "@microsoft/signalr";
@@ -18,6 +18,9 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [isAllPlayerReady, setIsAllPlayerReady] = useState<boolean>(false);
   const [isGameStarted, setIsGameStarted] = useState<boolean>();
   const [userScenarios, setUserScenarios] = useState<UserScenarioMapping>({});
+  const [isGameOver, setIsGameOver] = useState<boolean>(false);
+  const [isAnalysing, setIsAnalysing] = useState<boolean>(false);
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   useEffect(() => {
     if (signalRConnection) {
@@ -56,12 +59,35 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
   };
 
+  const handleAnalysisTrigger = (question:string, answer:string) => {
+    console.log("handleAnalysisTrigger called!");
+    if(signalRConnection){
+      signalRConnection.invoke("AnalyseResponse", roomKey, userEmail, question, answer)
+      .then(()=>{
+        console.log("Analyse Response SignalR event triggered!");
+      })
+          
+          
+      } 
+    }
+  
+
   const handleNextQuestion = () => {
     if (userEmail && userScenarios[userEmail]) {
       const totalQuestions = userScenarios[userEmail].length;
-      setCurrentQuestionIndex((prevIndex) => (prevIndex + 1) % totalQuestions);
+      setCurrentQuestionIndex((prevIndex) => {
+        if (prevIndex + 1 >= totalQuestions) {
+          setIsGameOver(true);
+          setIsGameStarted(false);
+          return prevIndex;
+        }
+
+        return prevIndex + 1;
+      });
     }
   };
+
+ 
 
   return (
     <div>
@@ -74,8 +100,15 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
               <div key={user}>
                 <strong>{user}</strong>:
                 <div className="question-box mt-4">
-                  <h3>Question:</h3>
-                  <p>{scenarios[currentQuestionIndex]}</p>
+                  <div className="question-details">
+                    <h3>Question:</h3>
+                    <p>{scenarios[currentQuestionIndex]}</p>
+                    <textarea
+                      className="textarea textarea-bordered mt-5"
+                      placeholder="Bio"
+                    ></textarea>
+                  </div>
+
                   <button
                     className="btn btn-secondary btn-sm mt-4"
                     onClick={handleNextQuestion}
@@ -87,6 +120,8 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
             ) : null
           )}
         </div>
+      ) : isGameOver ? (
+        <>Game over!</>
       ) : (
         <div className="scenario p-4">
           <div className="scenario-header text-3xl">Scenario</div>
