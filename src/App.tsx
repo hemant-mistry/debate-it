@@ -4,16 +4,21 @@ import HomePage from "./components/HomePage";
 import LoginPage from "./components/LoginPage";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setUserEmail } from "./redux/slices/authSlice";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import PlaygroundPage from "./components/PlaygroundPage";
 import * as signalR from "@microsoft/signalr";
+import { RootState } from "../src/redux/store";
 
 
 function App() {
   const dispatch = useDispatch();
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
+  //const userEmail = useSelector((state:RootState)=>state.user.email);
+  // Temporary hardcoding user
+  const userEmail = "sampleuser@gmail.com";
+
   useEffect(() => {
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -48,10 +53,15 @@ function App() {
     <>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage signalRConnection={connection}/>}/>
-          <Route path="/sample" element={<SamplePage/>}/>
-          <Route path="/login" element={<LoginPage/>}/>
-          <Route path="/hub/:roomKey" element={<PlaygroundPage signalRConnection={connection}/>}/>
+          {userEmail===null ? (
+            <Route path="*" element={<LoginPage/>}/>
+          ):(
+            <>
+            <Route path="/" element={<HomePage signalRConnection={connection}/>}/>
+            <Route path="/sample" element={<SamplePage/>}/>
+            <Route path="/hub/:roomKey" element={<PlaygroundPage signalRConnection={connection}/>}/>
+            </>
+          )}
         </Routes>
 
       </BrowserRouter>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setUsers } from "../redux/slices/roomSlice";
 import { UserDetails } from "../types/User";
+import Guide from "./ui/Guide";
 
 interface HomePageProps {
   signalRConnection: signalR.HubConnection | null;
@@ -90,77 +91,83 @@ function HomePage({ signalRConnection }: HomePageProps) {
   };
 
   return (
-    <div className="flex justify-center items-center">
-      <div className="card flex items-center bg-black shadow-xl p-4 justify-center mt-[150px] w-[300px]">
-        <div className="flex-row card-body">
-          <button
-            className={`btn ${
-              isJoinRoom ? "btn-ghost" : "btn-secondary"
-            } btn-sm`}
-            onClick={() => setIsJoinRoom(false)}
-          >
-            Create Room
-          </button>
-          <button
-            className={`btn ${
-              isJoinRoom ? "btn-secondary" : "btn-ghost"
-            } btn-sm`}
-            onClick={() => setIsJoinRoom(true)}
-          >
-            Join Room
-          </button>
-        </div>
-        {isJoinRoom ? (
-          <div className="flex flex-col gap-4">
-            <div className="label">
-              <span className="label-text">Enter your name:</span>
-            </div>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="input input-bordered"
-            />
-            <div className="label">
-              <span className="label-text">Enter room key:</span>
-            </div>
-            <input
-              type="text"
-              value={roomKey}
-              onChange={(e) => setRoomKey(e.target.value)}
-              className="input input-bordered"
-            />
-            <button className="btn btn-primary" onClick={handleJoinRoom}>
+    <>
+
+      <div className="flex justify-center items-center">
+
+        <div className="card flex items-center bg-black shadow-xl p-4 justify-center mt-[100px] w-[300px] pb-10">
+          <div className="main-header text-5xl text-center mt-[10px]">
+            <i>Debate</i> it
+          </div>
+          <div className="flex-row card-body">
+            <button
+              className={`btn ${isJoinRoom ? "btn-ghost" : "btn-secondary"
+                } btn-sm`}
+              onClick={() => setIsJoinRoom(false)}
+            >
+              Create Room
+            </button>
+            <button
+              className={`btn ${isJoinRoom ? "btn-secondary" : "btn-ghost"
+                } btn-sm`}
+              onClick={() => setIsJoinRoom(true)}
+            >
               Join Room
             </button>
           </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div className="label">
-              <span className="label-text">Enter your name:</span>
+          {isJoinRoom ? (
+            <div className="flex flex-col gap-4">
+              <div className="label">
+                <span className="label-text">Enter your name:</span>
+              </div>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="input input-bordered"
+              />
+              <div className="label">
+                <span className="label-text">Enter room key:</span>
+              </div>
+              <input
+                type="text"
+                value={roomKey}
+                onChange={(e) => setRoomKey(e.target.value)}
+                className="input input-bordered"
+              />
+              <button className="btn btn-primary" onClick={handleJoinRoom}>
+                Join Room
+              </button>
             </div>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="input input-bordered"
-            />
-            <div className="label">
-              <span className="label-text">Enter topic:</span>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="label">
+                <span className="label-text">Enter your name:</span>
+              </div>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="input input-bordered"
+              />
+              <div className="label">
+                <span className="label-text">Enter number of question:</span>
+              </div>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="input input-bordered"
+              />
+              <button className="btn btn-primary" onClick={handleCreateRoom}>
+                Create Room
+              </button>
             </div>
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              className="input input-bordered"
-            />
-            <button className="btn btn-primary" onClick={handleCreateRoom}>
-              Create Room
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+      <Guide />
+    </>
   );
 }
 
