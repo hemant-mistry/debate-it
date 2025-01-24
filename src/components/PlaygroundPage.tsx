@@ -15,7 +15,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
   const [isAllPlayerReady, setIsAllPlayerReady] = useState<boolean>(false);
   const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
-  const [isGameOver, setIsGameOver] = useState<boolean>(false);
+  //const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [answer, setAnswer] = useState<string>("");
   const [response, setResponse] = useState<string>("");
 
@@ -110,9 +110,9 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
             </div>
           )}
         </div>
-      ) : isGameOver ? (
+      ) /*: isGameOver ? (
         <>Game over!</>
-      ) : (
+      )*/ : (
         <div className="scenario p-4">
           <div className="scenario-header text-3xl">Scenario</div>
           <div className="scenario-description mt-2">
