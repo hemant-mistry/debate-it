@@ -15,9 +15,7 @@ import { RootState } from "../src/redux/store";
 function App() {
   const dispatch = useDispatch();
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
-  //const userEmail = useSelector((state:RootState)=>state.user.email);
-  // Temporary hardcoding user
-  const userEmail = "sampleuser@gmail.com";
+  const userEmail = useSelector((state:RootState)=>state.user.email);
 
   useEffect(() => {
     const fetchUser = async () => {

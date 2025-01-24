@@ -8,34 +8,35 @@ interface PlaygroundPageProps {
   signalRConnection: signalR.HubConnection | null;
 }
 
-type UserScenarioMapping = Record<string, string[]>;
-
 function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const { roomKey } = useParams<{ roomKey: string }>();
   const users = useSelector((state: RootState) => state.room.users);
   const userEmail = localStorage.getItem("UserEmail");
   const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
   const [isAllPlayerReady, setIsAllPlayerReady] = useState<boolean>(false);
-  const [isGameStarted, setIsGameStarted] = useState<boolean>();
-  const [userScenarios, setUserScenarios] = useState<UserScenarioMapping>({});
+  const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
-  const [isAnalysing, setIsAnalysing] = useState<boolean>(false);
+  const [answer, setAnswer] = useState<string>("");
+  const [response, setResponse] = useState<string>("");
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const question = "Is football dying?";
+
   useEffect(() => {
     if (signalRConnection) {
       signalRConnection.on("SendAllPlayersReady", (allReady: boolean) => {
         setIsAllPlayerReady(allReady);
       });
 
-      signalRConnection.on(
-        "SendScenarioInfo",
-        (userScenarios: UserScenarioMapping) => {
-          console.log("User scenario mapping list", userScenarios);
-          setUserScenarios(userScenarios);
-          setIsGameStarted(true);
+      signalRConnection.on("SendScenarioInfo", () => {
+        setIsGameStarted(true);
+      });
+
+      signalRConnection.on("SendAnalysis", (email:string, repsonse:string )=>{
+        if(email == userEmail){
+          setResponse(repsonse);
         }
-      );
+      
+      })
     }
   }, [signalRConnection]);
 
@@ -59,35 +60,23 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
   };
 
-  const handleAnalysisTrigger = (question:string, answer:string) => {
-    console.log("handleAnalysisTrigger called!");
-    if(signalRConnection){
-      signalRConnection.invoke("AnalyseResponse", roomKey, userEmail, question, answer)
-      .then(()=>{
-        console.log("Analyse Response SignalR event triggered!");
-      })
-          
-          
-      } 
-    }
-  
-
-  const handleNextQuestion = () => {
-    if (userEmail && userScenarios[userEmail]) {
-      const totalQuestions = userScenarios[userEmail].length;
-      setCurrentQuestionIndex((prevIndex) => {
-        if (prevIndex + 1 >= totalQuestions) {
-          setIsGameOver(true);
-          setIsGameStarted(false);
-          return prevIndex;
-        }
-
-        return prevIndex + 1;
-      });
+  const handleNextQuestion = async () => {
+    if (signalRConnection) {
+      try {
+        await signalRConnection.invoke(
+          "AnalyseResponse",
+          roomKey,
+          userEmail,
+          question,
+          answer
+        );
+        
+        setAnswer("");
+      } catch (error) {
+        console.error("Error invoking AnalyseResponse: ", error);
+      }
     }
   };
-
- 
 
   return (
     <div>
@@ -95,29 +84,30 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
       {isGameStarted ? (
         <div>
           Game has started!
-          {Object.entries(userScenarios).map(([user, scenarios]) =>
-            user === userEmail ? (
-              <div key={user}>
-                <strong>{user}</strong>:
-                <div className="question-box mt-4">
-                  <div className="question-details">
-                    <h3>Question:</h3>
-                    <p>{scenarios[currentQuestionIndex]}</p>
-                    <textarea
-                      className="textarea textarea-bordered mt-5"
-                      placeholder="Bio"
-                    ></textarea>
-                  </div>
+          <div className="question-box mt-4">
+            <div className="question-details">
+              <h3>Question:</h3>
+              <p>{question}</p>
+              <textarea
+                className="textarea textarea-bordered mt-5"
+                placeholder="Type your answer here"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+              ></textarea>
+            </div>
 
-                  <button
-                    className="btn btn-secondary btn-sm mt-4"
-                    onClick={handleNextQuestion}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            ) : null
+            <button
+              className="btn btn-secondary btn-sm mt-4"
+              onClick={handleNextQuestion}
+            >
+              Submit
+            </button>
+          </div>
+          {response && (
+            <div className="response-box mt-4">
+              <h3>Response:</h3>
+              <p>{response}</p>
+            </div>
           )}
         </div>
       ) : isGameOver ? (
