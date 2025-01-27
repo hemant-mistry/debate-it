@@ -1,4 +1,4 @@
-name: Build and deploy Web App debate-it-backend
+name: Build and deploy .NET Core application to Web App debate-it-backend
 on:
   push:
     branches:
@@ -45,5 +45,5 @@ jobs:
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
-        publish-profile: ${{ secrets.debate_it_backend_40F9 }}
+        publish-profile: ${{ secrets.debate_it_backend_DCD8 }}
         package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
