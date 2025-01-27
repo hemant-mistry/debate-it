@@ -9,7 +9,7 @@
     }
   },
   "profiles": {
-    "twist_it_backend": {
+    "debate_it_backend": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
