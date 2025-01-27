@@ -1,7 +1,7 @@
 ﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
-namespace twist_it_backend.Models
+namespace debate_it_backend.Models
 {
 	[Table("player")]
 	public class Player: BaseModel

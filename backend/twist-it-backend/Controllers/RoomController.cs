@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using twist_it_backend.Models;
-using twist_it_backend.Services;
+using debate_it_backend.Models;
+using debate_it_backend.Services;
 
-namespace twist_it_backend.Controllers
+namespace debate_it_backend.Controllers
 {
 	
 	[ApiController]

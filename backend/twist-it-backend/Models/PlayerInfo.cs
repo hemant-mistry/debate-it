@@ -1,4 +1,4 @@
-﻿namespace twist_it_backend.Models
+﻿namespace debate_it_backend.Models
 {
 	public class PlayerInfo
 	{

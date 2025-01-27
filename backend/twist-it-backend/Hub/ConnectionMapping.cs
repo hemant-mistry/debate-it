@@ -1,6 +1,6 @@
-﻿using twist_it_backend.Models;
+﻿using debate_it_backend.Models;
 
-namespace twist_it_backend.Hub
+namespace debate_it_backend.Hub
 {
 	public class ConnectionMapping<T>
 	{

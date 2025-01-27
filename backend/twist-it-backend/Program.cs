@@ -1,7 +1,7 @@
 
 using Supabase;
-using twist_it_backend.Hub;
-using twist_it_backend.Services;
+using debate_it_backend.Services;
+using debate_it_backend.Hub;
 
 var builder = WebApplication.CreateBuilder(args);
 

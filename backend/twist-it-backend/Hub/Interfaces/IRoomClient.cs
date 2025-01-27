@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using twist_it_backend.Models;
+using debate_it_backend.Models;
 
-namespace twist_it_backend.Hub.Interfaces
+namespace debate_it_backend.Hub.Interfaces
 {
 	public interface IRoomClient
 	{

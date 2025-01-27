@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Supabase.Gotrue;
-using twist_it_backend.Hub.Interfaces;
-using twist_it_backend.Models;
+using debate_it_backend.Hub.Interfaces;
+using debate_it_backend.Models;
 
-namespace twist_it_backend.Hub
+namespace debate_it_backend.Hub
 {
 	public class RoomHub : Hub<IRoomClient>
 	{

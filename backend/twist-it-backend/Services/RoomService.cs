@@ -1,6 +1,6 @@
-﻿using twist_it_backend.Models;
+﻿using debate_it_backend.Models;
 using Supabase.Interfaces;
-namespace twist_it_backend.Services;	
+namespace debate_it_backend.Services;	
 public class RoomService
 {
 	private readonly Supabase.Client _supabaseClient;
