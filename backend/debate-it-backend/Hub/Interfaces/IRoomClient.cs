@@ -9,8 +9,9 @@ namespace debate_it_backend.Hub.Interfaces
 		Task SendUpdatedUserList(List<PlayerInfo> users);
 		Task SendPlayerInfo(PlayerInfo playerInfo);
 		Task SendAllPlayersReady(bool isAllPlayerReady);
-		Task SendScenarioInfo(Dictionary<string,List<string>> scenarioMapping);
-		Task SendAnalysis(string player, string analysis);
+		Task SendRelayMessage(string userEmail);
+		Task SendDebateTopic(string roomKey);
+		Task SpeakerFinished(string message);
 
 	}
 }
