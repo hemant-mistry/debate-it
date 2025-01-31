@@ -15,11 +15,9 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
   const [isAllPlayerReady, setIsAllPlayerReady] = useState<boolean>(false);
   const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
-  //const [isGameOver, setIsGameOver] = useState<boolean>(false);
-  const [answer, setAnswer] = useState<string>("");
-  const [response, setResponse] = useState<string>("");
+  const [speaker, setSpeaker] = useState<string>("");
+  const [buzzerLocked, setBuzzerLocked] = useState<boolean>(false);
 
-  const question = "Is football dying?";
 
   useEffect(() => {
     if (signalRConnection) {
@@ -27,16 +25,20 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         setIsAllPlayerReady(allReady);
       });
 
-      signalRConnection.on("SendScenarioInfo", () => {
+      signalRConnection.on("SendDebateTopic", () => {
         setIsGameStarted(true);
       });
 
-      signalRConnection.on("SendAnalysis", (email:string, repsonse:string )=>{
-        if(email == userEmail){
-          setResponse(repsonse);
-        }
-      
+      signalRConnection.on("SendRelayMessage", (userEmailSever:string)=>{
+        setSpeaker(userEmailSever);
+        setBuzzerLocked(true);
+      });
+
+      signalRConnection.on("SpeakerFinished", () => {
+        setSpeaker("");
+        setBuzzerLocked(false);
       })
+
     }
   }, [signalRConnection]);
 
@@ -60,59 +62,40 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
   };
 
-  const handleNextQuestion = async () => {
-    if (signalRConnection) {
-      try {
-        await signalRConnection.invoke(
-          "AnalyseResponse",
-          roomKey,
-          userEmail,
-          question,
-          answer
-        );
-        
-        setAnswer("");
-      } catch (error) {
-        console.error("Error invoking AnalyseResponse: ", error);
+  const handleBuzzerClick = () => {
+    console.log("Inside BuzzerClick function!");
+    if(!buzzerLocked){
+      if(signalRConnection){
+        signalRConnection.invoke("BuzzerHit", roomKey, userEmail);
       }
     }
   };
+
+  const finishSpeaking = () => {
+    if(userEmail == speaker){
+      if(signalRConnection){
+        signalRConnection.invoke("FinishSpeaking", roomKey);
+      }
+    }
+  }
 
   return (
     <div>
       <h1>Joined Room: {roomKey}</h1>
       {isGameStarted ? (
         <div>
-          Game has started!
-          <div className="question-box mt-4">
-            <div className="question-details">
-              <h3>Question:</h3>
-              <p>{question}</p>
-              <textarea
-                className="textarea textarea-bordered mt-5"
-                placeholder="Type your answer here"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-              ></textarea>
-            </div>
-
-            <button
-              className="btn btn-secondary btn-sm mt-4"
-              onClick={handleNextQuestion}
-            >
-              Submit
-            </button>
-          </div>
-          {response && (
-            <div className="response-box mt-4">
-              <h3>Response:</h3>
-              <p>{response}</p>
-            </div>
-          )}
-        </div>
-      ) /*: isGameOver ? (
+        <h1>Room: {roomKey}</h1>
+        <p>Current Speaker: {speaker || "None"}</p>
+        <button onClick={handleBuzzerClick} disabled={buzzerLocked}>
+          Press Buzzer
+        </button>
+        {userEmail === speaker && (
+          <button onClick={finishSpeaking}>Finish Speaking</button>
+        )}
+      </div> /*: isGameOver ? (
         <>Game over!</>
-      )*/ : (
+      )*/
+      ) : (
         <div className="scenario p-4">
           <div className="scenario-header text-3xl">Scenario</div>
           <div className="scenario-description mt-2">

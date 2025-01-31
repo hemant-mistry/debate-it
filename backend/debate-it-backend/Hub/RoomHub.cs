@@ -2,6 +2,7 @@
 using Supabase.Gotrue;
 using debate_it_backend.Hub.Interfaces;
 using debate_it_backend.Models;
+using System.Collections.Concurrent;
 
 namespace debate_it_backend.Hub
 {
@@ -109,39 +110,39 @@ namespace debate_it_backend.Hub
 				bool allReady = users.All(player => player.IsReady);
 
 				await Clients.Group(roomKey).SendAllPlayersReady(allReady);
-
+					
 			}
 		}
 
 		// TODO: Replace these with Gemini generated scenarios
-		private readonly List<string> scenarios1 = new List<string> { "Question1", "Question2", "Question3", "Question4", "Question5"};
-		private readonly List<string> scenarios2 = new List<string> { "Questionfor1", "Questionfor2", "Questionfor3", "Questionfor4", "Questionfor5" };
-
+		// StartGame would trigger once all players are ready and hit "start"
+		readonly string debateTopic = "This is an AI generated Debate topic..";
 		public async Task StartGame(string roomKey)
 		{
-			List<PlayerInfo> users = _connections.GetUniqueInferredPlayersPerRoom(roomKey);
-			string player1 = users[0].UserEmail;
-			string player2 = users[1].UserEmail;
-			Dictionary<string, List<string>> userScenarioMapping = new Dictionary<string, List<string>>
-			{
-				{ player1, scenarios1 },
-				{ player2, scenarios2 }
-			};
-
-			await Clients.Group(roomKey).SendScenarioInfo(userScenarioMapping);
+			await Clients.Group(roomKey).SendDebateTopic(debateTopic);
 			
 		}
 
-		private readonly Dictionary<string, string> analyzeBucket = new Dictionary<string, string>();
-		// TODO: Maybe need to add gender?
-		public async Task AnalyseResponse(string roomKey, string userEmail, string question, string response)
-		{
-			Console.WriteLine(question);
-			Console.WriteLine(response);
+		private static ConcurrentDictionary<string, string> RoomSpeakers = new ConcurrentDictionary<string, string>();
+		private static ConcurrentDictionary<string, bool> RoomBuzzerState = new ConcurrentDictionary<string, bool>();
 
-			analyzeBucket.Add(question, response);
-			string GeminiResponse = "Gemini analysed!!";
-			await Clients.Groups(roomKey).SendAnalysis(userEmail, GeminiResponse);
+		public async Task BuzzerHit(string roomKey, string userEmail)
+		{
+			if(!RoomBuzzerState.GetValueOrDefault(roomKey, false))
+			{
+				RoomBuzzerState[roomKey] = true;
+				RoomSpeakers[roomKey] = userEmail;
+				await Clients.Groups(roomKey).SendRelayMessage(userEmail);
+			}
+		}
+
+		public async Task FinishSpeaking(string roomKey)
+		{
+			if(RoomSpeakers.TryRemove(roomKey, out _))
+			{
+				RoomBuzzerState[roomKey] = false;
+				await Clients.Groups(roomKey).SpeakerFinished("Speaker finished");
+			}
 		}
 	}
 }
