@@ -34,7 +34,7 @@ builder.Services.AddCors(options =>
 {
 	options.AddPolicy("AllowSpecificOrigin", policy =>
 	{
-		policy.WithOrigins("http://localhost:5173", "https://twist-it.vercel.app/") // Replace with your frontend URL
+		policy.WithOrigins("http://localhost:5173", "https://twist-it.vercel.app") // Replace with your frontend URL
 			  .AllowAnyHeader()
 			  .AllowAnyMethod()
 			  .AllowCredentials(); // Enables support for cookies or Authorization headers
