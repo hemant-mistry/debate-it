@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using debate_it_backend.Models;
 using debate_it_backend.Services;
+using Mscc.GenerativeAI;
 
 namespace debate_it_backend.Controllers
 {
@@ -10,11 +11,13 @@ namespace debate_it_backend.Controllers
 	public class RoomController : ControllerBase
 	{
 		private readonly RoomService _roomService;
+		private readonly IConfiguration _configuration;
 
 		// Constructor to inject the RoomService
-		public RoomController(RoomService roomService)
+		public RoomController(RoomService roomService, IConfiguration configuration)
 		{
 			_roomService = roomService;
+			_configuration = configuration;
 		}
 
 		[HttpGet]
@@ -87,6 +90,30 @@ namespace debate_it_backend.Controllers
 				return StatusCode(500, $"Internal server error: {ex.Message}");
 			}
 		}
+
+		[HttpPost]
+		[Route("/ai/create")]
+		public async Task<IActionResult> CreateAIContent([FromBody] string content)
+		{
+			try
+			{
+				var apiKey = _configuration["GeminiKey"];
+				var systemInstruction = new Content("You are a friendly pirate. Speak like one.");
+				IGenerativeAI genAi = new GoogleAI(apiKey);
+				var model = genAi.GenerativeModel(Model.Gemini15ProLatest, systemInstruction: systemInstruction);
+				var request = new GenerateContentRequest(content);
+
+				var response = await model.GenerateContent(request);
+
+				return Ok(response.Text);
+
+			}
+			catch ( Exception ex)
+			{
+				return StatusCode(500, $"Internal server error: {ex.Message}");
+			}
+		}
+
 
 	}
 }

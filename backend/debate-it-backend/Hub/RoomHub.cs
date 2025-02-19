@@ -3,6 +3,7 @@ using Supabase.Gotrue;
 using debate_it_backend.Hub.Interfaces;
 using debate_it_backend.Models;
 using System.Collections.Concurrent;
+using Mscc.GenerativeAI;
 
 namespace debate_it_backend.Hub
 {
@@ -10,6 +11,8 @@ namespace debate_it_backend.Hub
 	{
 		// Connection mapping to associate email with connectionId
 		private readonly static ConnectionMapping<string> _connections = new ConnectionMapping<string>();
+
+		private IConfiguration _configuration;
 
 		// Method for clients to join a room
 		public async Task JoinRoom(string roomKey, string userEmail, string inferredName)
@@ -119,7 +122,16 @@ namespace debate_it_backend.Hub
 		readonly string debateTopic = "This is an AI generated Debate topic..";
 		public async Task StartGame(string roomKey)
 		{
-			await Clients.Group(roomKey).SendDebateTopic(debateTopic);
+			var content = "Girls are bad at driving";
+			var apiKey = _configuration["GeminiKey"];
+			var systemInstruction = new Content($"Based on the topic you need to start debate between two people. So give questions or scenarios to build a debate around the topic./n Just give one topic /n Topic: {content}");
+			IGenerativeAI genAi = new GoogleAI(apiKey);
+			var model = genAi.GenerativeModel(Model.Gemini15ProLatest, systemInstruction: systemInstruction);
+			var request = new GenerateContentRequest(content);
+
+			var response = await model.GenerateContent(request);
+
+			await Clients.Group(roomKey).SendDebateTopic(response.Text);
 			
 		}
 

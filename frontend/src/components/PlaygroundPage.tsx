@@ -17,7 +17,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
   const [speaker, setSpeaker] = useState<string>("");
   const [buzzerLocked, setBuzzerLocked] = useState<boolean>(false);
-
+  const [debateTopic, setDebateTopic] = useState<string>();
 
   useEffect(() => {
     if (signalRConnection) {
@@ -25,8 +25,9 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         setIsAllPlayerReady(allReady);
       });
 
-      signalRConnection.on("SendDebateTopic", () => {
+      signalRConnection.on("SendDebateTopic", (response:string) => {
         setIsGameStarted(true);
+        setDebateTopic(response);
       });
 
       signalRConnection.on("SendRelayMessage", (userEmailSever:string)=>{
@@ -85,6 +86,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
       {isGameStarted ? (
         <div>
         <h1>Room: {roomKey}</h1>
+        <p> Debate topic: {debateTopic}</p>
         <p>Current Speaker: {speaker || "None"}</p>
         <button onClick={handleBuzzerClick} disabled={buzzerLocked}>
           Press Buzzer
