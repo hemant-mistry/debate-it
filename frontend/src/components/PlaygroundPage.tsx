@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { RootState } from "../redux/store";
 
@@ -17,7 +17,11 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
   const [speaker, setSpeaker] = useState<string>("");
   const [buzzerLocked, setBuzzerLocked] = useState<boolean>(false);
-
+  const [debateTopic, setDebateTopic] = useState<string>();
+  const [text, setText] = useState<string>();
+  const [isGameOver, setIsGameOver] = useState<boolean>(false);
+  const [scores, setScores] = useState<string>();
+  const recognitionRef = useRef<SpeechRecognition | null>(null); // Store recognition instance globally
 
   useEffect(() => {
     if (signalRConnection) {
@@ -25,11 +29,12 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         setIsAllPlayerReady(allReady);
       });
 
-      signalRConnection.on("SendDebateTopic", () => {
+      signalRConnection.on("SendDebateTopic", (response: string) => {
         setIsGameStarted(true);
+        setDebateTopic(response);
       });
 
-      signalRConnection.on("SendRelayMessage", (userEmailSever:string)=>{
+      signalRConnection.on("SendRelayMessage", (userEmailSever: string) => {
         setSpeaker(userEmailSever);
         setBuzzerLocked(true);
       });
@@ -37,8 +42,13 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
       signalRConnection.on("SpeakerFinished", () => {
         setSpeaker("");
         setBuzzerLocked(false);
-      })
+      });
 
+      signalRConnection.on("SendDebateScores", (debateScores: string) => {
+        console.log(debateScores);
+        setIsGameOver(true);
+        setScores(debateScores);
+      });
     }
   }, [signalRConnection]);
 
@@ -64,19 +74,86 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
 
   const handleBuzzerClick = () => {
     console.log("Inside BuzzerClick function!");
-    if(!buzzerLocked){
-      if(signalRConnection){
+
+    if (!buzzerLocked) {
+      if (signalRConnection) {
         signalRConnection.invoke("BuzzerHit", roomKey, userEmail);
       }
     }
+
+    // Initialize SpeechRecognition
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = true; // Keep recording even when the user pauses
+    recognition.interimResults = true; // Get results while the user is speaking
+    recognition.lang = "en-US"; // Set language (adjust as needed)
+
+    recognition.onresult = async (event) => {
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript + " ";
+      }
+      console.log("Speech recognized:", transcript.trim());
+      setText(transcript.trim());
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+    };
+
+    recognition.onend = () => {
+      console.log("Speech recognition ended.");
+    };
+
+    // Store the recognition instance in ref
+    recognitionRef.current = recognition;
+
+    // Start recognition
+    recognition.start();
+    console.log("Speech recognition started...");
   };
 
   const finishSpeaking = () => {
-    if(userEmail == speaker){
-      if(signalRConnection){
+    if (userEmail === speaker) {
+      if (signalRConnection) {
         signalRConnection.invoke("FinishSpeaking", roomKey);
       }
     }
+
+    // Stop speech recognition if it's running
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      console.log("Speech recognition stopped.");
+    }
+
+    if (signalRConnection) {
+      signalRConnection.invoke(
+        "ReceiveSpeechTranscript",
+        roomKey,
+        userEmail,
+        text
+      );
+      console.log("Sent the transcript to SignalR server");
+    }
+  };
+
+  const handleEndGameClick = () => {
+    console.log("Clicked the endgame");
+    if (signalRConnection) {
+      signalRConnection.invoke("HandleGameOver", roomKey);
+      console.log("HandleGameOver triggered!");
+    }
+  };
+
+  if(isGameOver){
+    return(
+      <>
+      Game over!
+      Scores are as follows: {scores}
+      </>
+    )
   }
 
   return (
@@ -84,17 +161,26 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
       <h1>Joined Room: {roomKey}</h1>
       {isGameStarted ? (
         <div>
-        <h1>Room: {roomKey}</h1>
-        <p>Current Speaker: {speaker || "None"}</p>
-        <button onClick={handleBuzzerClick} disabled={buzzerLocked}>
-          Press Buzzer
-        </button>
-        {userEmail === speaker && (
-          <button onClick={finishSpeaking}>Finish Speaking</button>
-        )}
-      </div> /*: isGameOver ? (
-        <>Game over!</>
-      )*/
+          <h1>Room: {roomKey}</h1>
+          <p> Debate topic: {debateTopic}</p>
+          <p>Current Speaker: {speaker || "None"}</p>
+          <button onClick={handleBuzzerClick} disabled={buzzerLocked}>
+            Press Buzzer
+          </button>
+          {userEmail === speaker && (
+            <>
+              <p>Your transcript: {text}</p>
+              <button onClick={finishSpeaking}>Finish Speaking</button>
+            </>
+          )}
+          <br />
+          <button
+            className="btn btn-sm btn-primary mt-5"
+            onClick={handleEndGameClick}
+          >
+            End game
+          </button>
+        </div>
       ) : (
         <div className="scenario p-4">
           <div className="scenario-header text-3xl">Scenario</div>

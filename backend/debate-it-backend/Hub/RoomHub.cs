@@ -3,6 +3,8 @@ using Supabase.Gotrue;
 using debate_it_backend.Hub.Interfaces;
 using debate_it_backend.Models;
 using System.Collections.Concurrent;
+using Mscc.GenerativeAI;
+using debate_it_backend.Prompts;
 
 namespace debate_it_backend.Hub
 {
@@ -10,6 +12,14 @@ namespace debate_it_backend.Hub
 	{
 		// Connection mapping to associate email with connectionId
 		private readonly static ConnectionMapping<string> _connections = new ConnectionMapping<string>();
+		private static readonly Dictionary<string, List<DebateEntry>> _debateRecords = new();
+		private readonly Supabase.Client? _supabaseClient;
+
+		public RoomHub(Supabase.Client supabaseClient)
+		{
+			_supabaseClient = supabaseClient ?? throw new ArgumentNullException(nameof(supabaseClient));
+		}
+		private IConfiguration _configuration;
 
 		// Method for clients to join a room
 		public async Task JoinRoom(string roomKey, string userEmail, string inferredName)
@@ -110,17 +120,24 @@ namespace debate_it_backend.Hub
 				bool allReady = users.All(player => player.IsReady);
 
 				await Clients.Group(roomKey).SendAllPlayersReady(allReady);
-					
+
 			}
 		}
 
 		// TODO: Replace these with Gemini generated scenarios
 		// StartGame would trigger once all players are ready and hit "start"
-		readonly string debateTopic = "This is an AI generated Debate topic..";
 		public async Task StartGame(string roomKey)
 		{
+			var room = await _supabaseClient.From<Room>()
+				.Where(x => x.RoomKey == roomKey)
+				.Single();
+
+			var topic = room!.Topic;
+
+			string debateTopic = await GenerateDebateTopic(topic);
+
 			await Clients.Group(roomKey).SendDebateTopic(debateTopic);
-			
+
 		}
 
 		private static ConcurrentDictionary<string, string> RoomSpeakers = new ConcurrentDictionary<string, string>();
@@ -128,7 +145,7 @@ namespace debate_it_backend.Hub
 
 		public async Task BuzzerHit(string roomKey, string userEmail)
 		{
-			if(!RoomBuzzerState.GetValueOrDefault(roomKey, false))
+			if (!RoomBuzzerState.GetValueOrDefault(roomKey, false))
 			{
 				RoomBuzzerState[roomKey] = true;
 				RoomSpeakers[roomKey] = userEmail;
@@ -138,11 +155,122 @@ namespace debate_it_backend.Hub
 
 		public async Task FinishSpeaking(string roomKey)
 		{
-			if(RoomSpeakers.TryRemove(roomKey, out _))
+			if (RoomSpeakers.TryRemove(roomKey, out _))
 			{
 				RoomBuzzerState[roomKey] = false;
 				await Clients.Groups(roomKey).SpeakerFinished("Speaker finished");
 			}
 		}
+
+		public async Task ReceiveSpeechTranscript(string roomKey, string userEmail, string debateTranscript)
+		{
+			lock (_debateRecords)
+			{
+				if(!_debateRecords.TryGetValue(roomKey, out var entries))
+				{
+					entries = new List<DebateEntry>();
+					_debateRecords[roomKey] = entries;
+				}
+
+				lock (entries)
+				{
+					entries.Add(new DebateEntry
+					{
+						RoomKey = roomKey,
+						UserEmail = userEmail,
+						DebateTranscript = debateTranscript,
+					});
+				}
+			}
+
+			await Clients.Groups(roomKey).SavedTranscript("Saved the transcript for" + userEmail);
+		}
+
+		public async Task HandleGameOver(string roomKey)
+		{
+			List<DebateEntry> debates;
+			List<GeminiInputFormat> inputFormats = new List<GeminiInputFormat>();
+
+			lock (_debateRecords)
+			{
+				debates = _debateRecords.Values
+					.SelectMany(debateList => debateList)
+					.Where(debate => debate.RoomKey == roomKey)
+					.ToList();
+
+				foreach (var debate in debates)
+				{
+					inputFormats.Add(new GeminiInputFormat
+					{
+						UserEmail = debate.UserEmail,
+						Transcript = debate.DebateTranscript
+					});
+				}
+			}
+
+			string response = await CallGeminiAPI(inputFormats);
+
+			await Clients.Groups(roomKey).SendDebateScores(response);
+		}
+
+		private async Task<string> CallGeminiAPI(List<GeminiInputFormat> debates)
+		{
+			var apiKey = "AIzaSyCbzdC1Cy5PKkJfoqdv1QTYhSIn6TdBEN4"; // Replace with your actual API key
+
+			// Convert debate entries to a structured format
+			string debateText = string.Join("\n", debates.Select(d => $"{d.UserEmail}: {d.Transcript}"));
+
+			// System instruction with correct newline syntax
+			var systemInstruction = new Content($"{Prompts.Prompts.DEBATE_AI_SYSTEM_PROMPT}\nDebate Transcript:\n{debateText}");
+
+
+			IGenerativeAI genAi = new GoogleAI(apiKey);
+			var model = genAi.GenerativeModel(Model.Gemini20Flash, systemInstruction: systemInstruction);
+
+			// Properly format the request with debate content
+			var request = new GenerateContentRequest(debateText);
+
+			try
+			{
+				var response = await model.GenerateContent(request);
+
+				// Extract and return response text
+				return response?.ToString() ?? "No response received";
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error calling Gemini API: {ex.Message}");
+				return "Error processing request";
+			}
+		}
+
+		private async Task<string> GenerateDebateTopic(string topic)
+		{
+			var apiKey = "AIzaSyCbzdC1Cy5PKkJfoqdv1QTYhSIn6TdBEN4"; // Replace with your actual API key
+
+			// System instruction with correct newline syntax
+			var systemInstruction = new Content($"{Prompts.Prompts.GENERATE_DEBATE_STATEMENTS}");
+
+
+			IGenerativeAI genAi = new GoogleAI(apiKey);
+			var model = genAi.GenerativeModel(Model.Gemini20Flash, systemInstruction: systemInstruction);
+
+			// Properly format the request with debate content
+			var request = new GenerateContentRequest(topic);
+
+			try
+			{
+				var response = await model.GenerateContent(request);
+
+				// Extract and return response text
+				return response?.ToString() ?? "No response received";
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error calling Gemini API: {ex.Message}");
+				return "Error processing request";
+			}
+		}
+
 	}
 }

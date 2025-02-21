@@ -5,7 +5,7 @@ namespace debate_it_backend.Hub
 	public class ConnectionMapping<T>
 	{
 		private readonly Dictionary<T, List<PlayerInfo>> _connections = new Dictionary<T, List<PlayerInfo>>();
-
+		
 		public int Count => _connections.Count;
 
 		public void Add(T key, string connectionId, string userEmail, string inferredName, string roomKey)
