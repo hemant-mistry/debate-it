@@ -13,7 +13,12 @@ namespace debate_it_backend.Hub
 		// Connection mapping to associate email with connectionId
 		private readonly static ConnectionMapping<string> _connections = new ConnectionMapping<string>();
 		private static readonly Dictionary<string, List<DebateEntry>> _debateRecords = new();
+		private readonly Supabase.Client? _supabaseClient;
 
+		public RoomHub(Supabase.Client supabaseClient)
+		{
+			_supabaseClient = supabaseClient ?? throw new ArgumentNullException(nameof(supabaseClient));
+		}
 		private IConfiguration _configuration;
 
 		// Method for clients to join a room
@@ -121,19 +126,17 @@ namespace debate_it_backend.Hub
 
 		// TODO: Replace these with Gemini generated scenarios
 		// StartGame would trigger once all players are ready and hit "start"
-		readonly string debateTopic = "This is an AI generated Debate topic..";
 		public async Task StartGame(string roomKey)
 		{
-			/*var content = "Girls are bad at driving";
-			var apiKey = _configuration["GeminiKey"];
-			var systemInstruction = new Content($"Based on the topic you need to start debate between two people. So give questions or scenarios to build a debate around the topic./n Just give one topic /n Topic: {content}");
-			IGenerativeAI genAi = new GoogleAI(apiKey);
-			var model = genAi.GenerativeModel(Model.Gemini15ProLatest, systemInstruction: systemInstruction);
-			var request = new GenerateContentRequest(content);
+			var room = await _supabaseClient.From<Room>()
+				.Where(x => x.RoomKey == roomKey)
+				.Single();
 
-			var response = await model.GenerateContent(request);*/
+			var topic = room!.Topic;
 
-			await Clients.Group(roomKey).SendDebateTopic("This is a test topic");
+			string debateTopic = await GenerateDebateTopic(topic);
+
+			await Clients.Group(roomKey).SendDebateTopic(debateTopic);
 
 		}
 
@@ -226,6 +229,34 @@ namespace debate_it_backend.Hub
 
 			// Properly format the request with debate content
 			var request = new GenerateContentRequest(debateText);
+
+			try
+			{
+				var response = await model.GenerateContent(request);
+
+				// Extract and return response text
+				return response?.ToString() ?? "No response received";
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error calling Gemini API: {ex.Message}");
+				return "Error processing request";
+			}
+		}
+
+		private async Task<string> GenerateDebateTopic(string topic)
+		{
+			var apiKey = "AIzaSyCbzdC1Cy5PKkJfoqdv1QTYhSIn6TdBEN4"; // Replace with your actual API key
+
+			// System instruction with correct newline syntax
+			var systemInstruction = new Content($"{Prompts.Prompts.GENERATE_DEBATE_STATEMENTS}");
+
+
+			IGenerativeAI genAi = new GoogleAI(apiKey);
+			var model = genAi.GenerativeModel(Model.Gemini20Flash, systemInstruction: systemInstruction);
+
+			// Properly format the request with debate content
+			var request = new GenerateContentRequest(topic);
 
 			try
 			{
