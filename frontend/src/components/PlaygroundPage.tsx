@@ -27,7 +27,8 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [scores, setScores] = useState<string>();
   const [notification, setNotification] = useState<Notification>();
-  const recognitionRef = useRef<SpeechRecognition | null>(null); // Store recognition instance globally
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
 
   useEffect(() => {
     if (signalRConnection) {

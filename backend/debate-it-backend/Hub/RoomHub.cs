@@ -5,6 +5,7 @@ using debate_it_backend.Models;
 using System.Collections.Concurrent;
 using Mscc.GenerativeAI;
 using debate_it_backend.Prompts;
+using System.Diagnostics;
 
 namespace debate_it_backend.Hub
 {
@@ -24,24 +25,37 @@ namespace debate_it_backend.Hub
 		// Method for clients to join a room
 		public async Task JoinRoom(string roomKey, string userEmail, string inferredName)
 		{
-			// Map the email to the PlayerInfo
-			_connections.Add(userEmail, Context.ConnectionId, userEmail, inferredName, roomKey);
+			try
+			{
+				_connections.Add(userEmail, Context.ConnectionId, userEmail, inferredName, roomKey);
+				await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
+				await Clients.Group(roomKey).SendMessageToClient($"{userEmail} has joined room {roomKey}");
 
-			// Add the user to the SignalR group
-			await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
-
-			await Clients.Group(roomKey).SendMessageToClient($"{userEmail} has joined room {roomKey}");
-
-			List<PlayerInfo> users = _connections.GetUniqueInferredPlayersPerRoom(roomKey);
-
-			await Clients.Group(roomKey).SendUpdatedUserList(users);
-
-		}
+				List<PlayerInfo> users = _connections.GetUniqueInferredPlayersPerRoom(roomKey);
+				await Clients.Group(roomKey).SendUpdatedUserList(users);
+			}
+			catch (InvalidOperationException ex)
+			{
+				throw new HubException(ex.Message); // Throwing SignalR specific exception
+			}
+			catch (Exception ex)
+			{
+				throw new HubException("An unexpected error occurred while joining the room.");
+			}
+		}	
 
 		// Method for sending a message to all clients in a specific room
 		public async Task SendMessage(string roomKey, string message)
 		{
 			await Clients.Group(roomKey).SendMessageToClient(message);
+		}
+
+		public override async Task OnDisconnectedAsync(Exception? exception)
+		{
+
+			Trace.WriteLine(Context.ConnectionId + " - disconnected");
+			_connections.Remove(Context.ConnectionId);
+			await base.OnDisconnectedAsync(exception);
 		}
 
 		/*// Method for handling client leaving a room
@@ -224,6 +238,9 @@ namespace debate_it_backend.Hub
 			string response = await CallGeminiAPI(inputFormats);
 
 			await Clients.Groups(roomKey).SendDebateScores(response);
+
+			// Remove all user connections for the room
+			RemoveRoomConnections(roomKey);
 		}
 
 		private async Task<string> CallGeminiAPI(List<GeminiInputFormat> debates)
@@ -306,6 +323,18 @@ namespace debate_it_backend.Hub
 			if(isGameOver)
 			{
 				await HandleGameOver(roomKey);
+			}
+		}
+
+		private void RemoveRoomConnections(string roomKey)
+		{
+			lock (_connections)
+			{
+				var usersInRoom = _connections.GetConnectionsByRoomKey(roomKey);
+				foreach (var user in usersInRoom)
+				{
+					_connections.Remove(user.ConnectionId);
+				}
 			}
 		}
 

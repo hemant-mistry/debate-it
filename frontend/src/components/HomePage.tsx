@@ -29,36 +29,50 @@ function HomePage({ signalRConnection }: HomePageProps) {
   }, [signalRConnection, dispatch]);
 
   const handleJoinRoom = async () => {
-    const response = await fetch(
-      `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/join-room`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ playerName, roomKey }),
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/join-room`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ playerName, roomKey }),
+        }
+      );
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to join room.");
       }
-    );
-
-    if (response.ok) {
+  
       if (signalRConnection) {
         try {
-          await signalRConnection.invoke(
-            "JoinRoom",
-            roomKey,
-            userEmail,
-            playerName
-          );
+          await signalRConnection.invoke("JoinRoom", roomKey, userEmail, playerName);
           console.log("Joined room successfully");
           navigate(`/hub/${roomKey}`);
         } catch (err) {
           console.error("JoinRoom failed: ", err);
+          if (err instanceof Error) {
+            alert(err.message || "Error while joining the room. Please try again.");
+          } else {
+            alert("Error while joining the room. Please try again.");
+          }
         }
+      } else {
+        throw new Error("SignalR connection not available.");
       }
-    } else {
-      console.error("Failed to join room");
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      if (err instanceof Error) {
+        alert(err.message || "An unexpected error occurred. Please try again.");
+      } else {
+        alert("An unexpected error occurred. Please try again.");
+      }
     }
   };
+  
+  
 
   const handleCreateRoom = async () => {
     const response = await fetch(
