@@ -8,6 +8,11 @@ interface PlaygroundPageProps {
   signalRConnection: signalR.HubConnection | null;
 }
 
+interface Notification {
+  userEmail: string;
+  turnsLeft: Int16Array
+}
+
 function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const { roomKey } = useParams<{ roomKey: string }>();
   const users = useSelector((state: RootState) => state.room.users);
@@ -21,6 +26,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [text, setText] = useState<string>();
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [scores, setScores] = useState<string>();
+  const [notification, setNotification] = useState<Notification>();
   const recognitionRef = useRef<SpeechRecognition | null>(null); // Store recognition instance globally
 
   useEffect(() => {
@@ -49,6 +55,11 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         setIsGameOver(true);
         setScores(debateScores);
       });
+
+      signalRConnection.on("SavedTranscript", (notification:Notification)=>{
+        console.log(notification);
+       setNotification(notification);
+      })
     }
   }, [signalRConnection]);
 
@@ -164,6 +175,12 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
           <h1>Room: {roomKey}</h1>
           <p> Debate topic: {debateTopic}</p>
           <p>Current Speaker: {speaker || "None"}</p>
+          
+          {/* Display turns left only if notification exists and matches the userEmail */}
+          {notification && userEmail === notification.userEmail && (
+            <p> Turns left: {notification.turnsLeft}</p>
+          )}
+          
           <button onClick={handleBuzzerClick} disabled={buzzerLocked}>
             Press Buzzer
           </button>

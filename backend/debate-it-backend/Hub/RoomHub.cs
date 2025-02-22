@@ -91,7 +91,7 @@ namespace debate_it_backend.Hub
 		// Start a timer and notify all clients in the room
 		public async Task StartTimer(string roomKey)
 		{
-			for (int i = 20; i >= 0; i--)
+			for (int i = 60; i >= 0; i--)
 			{
 				await Clients.Group(roomKey).SendMessageToClient($"Time remaining: {i} seconds");
 				await Task.Delay(1000);
@@ -164,6 +164,7 @@ namespace debate_it_backend.Hub
 
 		public async Task ReceiveSpeechTranscript(string roomKey, string userEmail, string debateTranscript)
 		{
+			int turnsLeft = 0;
 			lock (_debateRecords)
 			{
 				if(!_debateRecords.TryGetValue(roomKey, out var entries))
@@ -180,10 +181,22 @@ namespace debate_it_backend.Hub
 						UserEmail = userEmail,
 						DebateTranscript = debateTranscript,
 					});
+
+					// Calculate turns left for the user (MAX TURNS 5)
+					turnsLeft = Math.Max(0, 5 - entries.Count(e => e.UserEmail == userEmail));
 				}
 			}
 
-			await Clients.Groups(roomKey).SavedTranscript("Saved the transcript for" + userEmail);
+			Notification notification = new Notification
+			{
+				UserEmail = userEmail,
+				TurnsLeft = turnsLeft
+			};
+
+			await Clients.Groups(roomKey).SavedTranscript(notification);
+
+			// Check if debate is complete for all users
+			await CheckAndHandleGameOver(roomKey);
 		}
 
 		public async Task HandleGameOver(string roomKey)
@@ -269,6 +282,30 @@ namespace debate_it_backend.Hub
 			{
 				Console.WriteLine($"Error calling Gemini API: {ex.Message}");
 				return "Error processing request";
+			}
+		}
+
+		private async Task CheckAndHandleGameOver(string roomKey)
+		{
+			bool isGameOver = false;
+			lock (_debateRecords)
+			{
+				if(_debateRecords.TryGetValue(roomKey, out var entries))
+				{
+					// Group by user and check if every user has at least 5 entries
+					var userCounts = entries.GroupBy(e => e.UserEmail)
+											.Select(g => new {User = g.Key, Count = g.Count()});
+
+					if(userCounts.All(u => u.Count >=5))
+					{
+						isGameOver = true;
+					}
+				}
+			}
+
+			if(isGameOver)
+			{
+				await HandleGameOver(roomKey);
 			}
 		}
 

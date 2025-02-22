@@ -12,7 +12,7 @@ namespace debate_it_backend.Hub.Interfaces
 		Task SendRelayMessage(string userEmail);
 		Task SendDebateTopic(string roomKey);
 		Task SpeakerFinished(string message);
-		Task SavedTranscript(string message);
+		Task SavedTranscript(Notification notification);
 		Task SendDebateScores(string debateScores);
 
 	}
