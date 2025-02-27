@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import SpiderManGif from "../assets/spiderman.gif";
 
 function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -29,15 +30,18 @@ function LoginPage() {
   return (
     <div className="flex items-start min-h-screen pt-[180px]">
       <div className="flex flex-col items-center text-center w-full">
+        <div className="flex justify-center mb-5">
+          <img src={SpiderManGif} className="w-1/2"/>
+        </div>
         <p className="text-3xl mb-4">
-          Welcome to <i>Twist</i> it!
+          Welcome to <i>Debate</i> it!
         </p>
         <p className="text-1xl mb-8">
-          Click on the below button to sign in and fu*ck around with your
+          Click on the below button to sign in and debate around with your
           friends!
         </p>
         <button
-          className="btn btn-neutral px-4"
+          className="btn btn-neutral px-4 btn-md"
           onClick={handleGoogleSignIn}
           disabled={loading}
         >

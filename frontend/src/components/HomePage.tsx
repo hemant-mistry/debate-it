@@ -110,19 +110,19 @@ function HomePage({ signalRConnection }: HomePageProps) {
       <div className="flex justify-center items-center">
 
         <div className="card flex items-center bg-black shadow-xl p-4 justify-center mt-[100px] w-[300px] pb-10">
-          <div className="main-header text-5xl text-center mt-[10px]">
+          <div className="main-header text-5xl text-center mt-[10px] text-white">
             <i>Debate</i> it
           </div>
           <div className="flex-row card-body">
             <button
-              className={`btn ${isJoinRoom ? "btn-ghost" : "btn-secondary"
+              className={`btn ${isJoinRoom ? "btn-ghost text-white" : "btn-secondary"
                 } btn-sm`}
               onClick={() => setIsJoinRoom(false)}
             >
               Create Room
             </button>
             <button
-              className={`btn ${isJoinRoom ? "btn-secondary" : "btn-ghost"
+              className={`btn ${isJoinRoom ? "btn-secondary" : "btn-ghost text-white" 
                 } btn-sm`}
               onClick={() => setIsJoinRoom(true)}
             >
@@ -132,7 +132,7 @@ function HomePage({ signalRConnection }: HomePageProps) {
           {isJoinRoom ? (
             <div className="flex flex-col gap-4">
               <div className="label">
-                <span className="label-text">Enter your name:</span>
+                <span className="label-text text-white">Enter your name:</span>
               </div>
               <input
                 type="text"
@@ -141,7 +141,7 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 className="input input-bordered"
               />
               <div className="label">
-                <span className="label-text">Enter room key:</span>
+                <span className="label-text text-white">Enter room key:</span>
               </div>
               <input
                 type="text"
@@ -149,14 +149,14 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 onChange={(e) => setRoomKey(e.target.value)}
                 className="input input-bordered"
               />
-              <button className="btn btn-primary" onClick={handleJoinRoom}>
+              <button className="btn btn-success" onClick={handleJoinRoom}>
                 Join Room
               </button>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
               <div className="label">
-                <span className="label-text">Enter your name:</span>
+                <span className="label-text text-white">Enter your name:</span>
               </div>
               <input
                 type="text"
@@ -165,7 +165,7 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 className="input input-bordered"
               />
               <div className="label">
-                <span className="label-text">Enter number of question:</span>
+                <span className="label-text text-white">Enter your topic:</span>
               </div>
               <input
                 type="text"
@@ -173,7 +173,7 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 onChange={(e) => setTopic(e.target.value)}
                 className="input input-bordered"
               />
-              <button className="btn btn-primary" onClick={handleCreateRoom}>
+              <button className="btn btn-success" onClick={handleCreateRoom}>
                 Create Room
               </button>
             </div>

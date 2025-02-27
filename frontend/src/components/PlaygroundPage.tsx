@@ -13,9 +13,19 @@ interface Notification {
   turnsLeft: Int16Array
 }
 
+const mockUsers = [
+  { inferredName: "Alice", isReady: true, userEmail: "alice@example.com" },
+  { inferredName: "Bob", isReady: false, userEmail: "bob@example.com" },
+  { inferredName: "Charlie", isReady: true, userEmail: "charlie@example.com" },
+  { inferredName: "David", isReady: false, userEmail: "david@example.com" }
+];
+
+
 function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const { roomKey } = useParams<{ roomKey: string }>();
-  const users = useSelector((state: RootState) => state.room.users);
+  //const users = useSelector((state: RootState) => state.room.users);
+  // Turn on for mock debugging
+  const [users, setUsers] = useState(mockUsers);
   const userEmail = localStorage.getItem("UserEmail");
   const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
   const [isAllPlayerReady, setIsAllPlayerReady] = useState<boolean>(false);
@@ -57,23 +67,32 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         setScores(debateScores);
       });
 
-      signalRConnection.on("SavedTranscript", (notification:Notification)=>{
+      signalRConnection.on("SavedTranscript", (notification: Notification) => {
         console.log(notification);
-       setNotification(notification);
+        setNotification(notification);
       })
     }
   }, [signalRConnection]);
 
-  const handleReadyStatus = () => {
-    const newReadyStatus = !isPlayerReady;
-    setIsPlayerReady(newReadyStatus);
-    if (signalRConnection) {
-      signalRConnection
-        .invoke("UpdateReadyStatus", userEmail, roomKey, newReadyStatus)
-        .then(() => console.log("Player status updated successfully!"))
-        .catch((err) => console.error("Error updating ready status: ", err));
-    }
+  // const handleReadyStatus = () => {
+  //   const newReadyStatus = !isPlayerReady;
+  //   setIsPlayerReady(newReadyStatus);
+  //   if (signalRConnection) {
+  //     signalRConnection
+  //       .invoke("UpdateReadyStatus", userEmail, roomKey, newReadyStatus)
+  //       .then(() => console.log("Player status updated successfully!"))
+  //       .catch((err) => console.error("Error updating ready status: ", err));
+  //   }
+  // };
+
+  const handleReadyStatus = (email: string) => {
+    setUsers((prevUsers) =>
+      prevUsers.map((user) =>
+        user.userEmail === email ? { ...user, isReady: !user.isReady } : user
+      )
+    );
   };
+
 
   const handleStart = () => {
     console.log("HandleStart function called");
@@ -159,29 +178,28 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
   };
 
-  if(isGameOver){
-    return(
+  if (isGameOver) {
+    return (
       <>
-      Game over!
-      Scores are as follows: {scores}
+        Game over!
+        Scores are as follows: {scores}
       </>
     )
   }
 
   return (
     <div>
-      <h1>Joined Room: {roomKey}</h1>
       {isGameStarted ? (
         <div>
           <h1>Room: {roomKey}</h1>
           <p> Debate topic: {debateTopic}</p>
           <p>Current Speaker: {speaker || "None"}</p>
-          
+
           {/* Display turns left only if notification exists and matches the userEmail */}
           {notification && userEmail === notification.userEmail && (
             <p> Turns left: {notification.turnsLeft}</p>
           )}
-          
+
           <button onClick={handleBuzzerClick} disabled={buzzerLocked}>
             Press Buzzer
           </button>
@@ -200,14 +218,17 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
           </button>
         </div>
       ) : (
-        <div className="scenario p-4">
-          <div className="scenario-header text-3xl">Scenario</div>
-          <div className="scenario-description mt-2">
-            You and your best friend accidentally stumble upon a time machine
-            disguised as a porta-potty at a music festival. You decide to take
-            it for a spin, but something goes hilariously wrong.
+        <div className="scenario flex flex-col items-center">
+          {/* Card for header only */}
+          <div className="scenario card flex flex-col shadow-xl w-1/2 p-4 mt-10">
+            <div className="flex justify-between w-full">
+              <div className="scenario-header text-xl">Game Lobby</div>
+              <div className="scenario-header text-xl">Room code: {roomKey}</div>
+            </div>
           </div>
-          <ul>
+
+          {/* Player list below header */}
+          <ul className="w-1/2 mt-4">
             {users.map((user) =>
               user ? (
                 <li key={user.inferredName} className="mt-4">
@@ -218,25 +239,27 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
                   {user.userEmail === userEmail && (
                     <button
                       className="btn btn-primary btn-xs mt-2"
-                      onClick={handleReadyStatus}
+                      onClick={() => handleReadyStatus(user.userEmail)}
                     >
-                      {isPlayerReady ? "Not ready" : "Ready"}
+                      {user.isReady ? "Not ready" : "Ready"}
                     </button>
                   )}
                 </li>
               ) : null
             )}
           </ul>
+
+          {/* Additional controls */}
           <div>{isAllPlayerReady}</div>
           {isAllPlayerReady && (
-            <button
-              className="btn btn-primary btn-sm mt-10"
-              onClick={handleStart}
-            >
+            <button className="btn btn-primary btn-sm mt-10" onClick={handleStart}>
               Start
             </button>
           )}
         </div>
+
+
+
       )}
     </div>
   );

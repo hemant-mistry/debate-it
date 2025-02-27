@@ -51,15 +51,15 @@ function App() {
     <>
       <BrowserRouter>
         <Routes>
-          {userEmail===null ? (
+           
             <Route path="*" element={<LoginPage/>}/>
-          ):(
+          
             <>
             <Route path="/" element={<HomePage signalRConnection={connection}/>}/>
             <Route path="/sample" element={<SamplePage/>}/>
             <Route path="/hub/:roomKey" element={<PlaygroundPage signalRConnection={connection}/>}/>
             </>
-          )}
+      
         </Routes>
 
       </BrowserRouter>
