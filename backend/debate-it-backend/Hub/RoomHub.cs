@@ -201,10 +201,18 @@ namespace debate_it_backend.Hub
 				}
 			}
 
+			List<DebateEntry> debates;
+
+			debates = _debateRecords.Values
+					.SelectMany(debateList => debateList)
+					.Where(debate => debate.RoomKey == roomKey)
+					.ToList();
+
 			Notification notification = new Notification
 			{
 				UserEmail = userEmail,
-				TurnsLeft = turnsLeft
+				TurnsLeft = turnsLeft,
+				DebateEntries = debates
 			};
 
 			await Clients.Groups(roomKey).SavedTranscript(notification);

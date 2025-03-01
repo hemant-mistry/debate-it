@@ -3,6 +3,7 @@
 	public class Notification
 	{
 		public string UserEmail { get; set; }
+		public List<DebateEntry> DebateEntries { get; set; }
 		public int TurnsLeft { get; set; }
 	}
 }

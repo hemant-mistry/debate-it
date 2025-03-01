@@ -3,6 +3,10 @@ import { useSelector } from "react-redux";
 import { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { RootState } from "../redux/store";
+import Lottie from "react-lottie";
+import listeningAnimation from "../lottie/listening.json";
+import CurrentSpeakerIcon from "../assets/debate-mic.png";
+import BuzzerIcon from "../assets/debate-buzzer.png";
 
 interface PlaygroundPageProps {
   signalRConnection: signalR.HubConnection | null;
@@ -10,7 +14,14 @@ interface PlaygroundPageProps {
 
 interface Notification {
   userEmail: string;
-  turnsLeft: Int16Array
+  debateEntries: DebateEntry[];
+  turnsLeft: Int16Array;
+}
+
+interface DebateEntry {
+  roomKey: string;
+  userEmail: string;
+  debateTranscript: string;
 }
 
 function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
@@ -28,7 +39,18 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [scores, setScores] = useState<string>();
   const [notification, setNotification] = useState<Notification>();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [countdown, setCountdown] = useState<number>(5);
+  const [thread, setThread] = useState<DebateEntry[]>([]);
+  const threadContainerRef = useRef<HTMLDivElement>(null);
 
+  const defaultOptions = {
+    loop: true,
+    autoplay: true,
+    animationData: listeningAnimation,
+    rendererSettings: {
+      preserveAspectRatio: "xMidYMid slice",
+    },
+  };
 
   useEffect(() => {
     if (signalRConnection) {
@@ -57,12 +79,51 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         setScores(debateScores);
       });
 
-      signalRConnection.on("SavedTranscript", (notification:Notification)=>{
+      signalRConnection.on("SavedTranscript", (notification: Notification) => {
         console.log(notification);
-       setNotification(notification);
-      })
+        setNotification(notification);
+        setThread(
+          notification.debateEntries.map((entry) => ({
+            roomKey: entry.roomKey,
+            userEmail: entry.userEmail,
+            debateTranscript: entry.debateTranscript,
+          }))
+        );
+      });
     }
   }, [signalRConnection]);
+
+  // Manage countdown timer when all players are ready
+  useEffect(() => {
+    if (isAllPlayerReady) {
+      setCountdown(5); // reset countdown
+      const timerId = setInterval(() => {
+        setCountdown((prevCount) => {
+          if (prevCount <= 1) {
+            clearInterval(timerId);
+            return 0;
+          }
+          return prevCount - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timerId);
+    }
+  }, [isAllPlayerReady]);
+
+  // Trigger game start when countdown finishes
+  useEffect(() => {
+    if (isAllPlayerReady && countdown === 0) {
+      handleStart();
+    }
+  }, [countdown, isAllPlayerReady]);
+
+  // Scroll to the bottom of the container when thread updates
+  useEffect(() => {
+    if (threadContainerRef.current) {
+      threadContainerRef.current.scrollTop =
+        threadContainerRef.current.scrollHeight;
+    }
+  }, [thread]);
 
   const handleReadyStatus = () => {
     const newReadyStatus = !isPlayerReady;
@@ -151,83 +212,118 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
   };
 
-  const handleEndGameClick = () => {
-    console.log("Clicked the endgame");
-    if (signalRConnection) {
-      signalRConnection.invoke("HandleGameOver", roomKey);
-      console.log("HandleGameOver triggered!");
-    }
-  };
-
-  if(isGameOver){
-    return(
-      <>
-      Game over!
-      Scores are as follows: {scores}
-      </>
-    )
+  if (isGameOver) {
+    return <>Game over! Scores are as follows: {scores}</>;
   }
 
   return (
-    <div>
-      <h1>Joined Room: {roomKey}</h1>
+    <div className="container mx-auto px-10 md:mt-10">
       {isGameStarted ? (
-        <div>
-          <h1>Room: {roomKey}</h1>
-          <p> Debate topic: {debateTopic}</p>
-          <p>Current Speaker: {speaker || "None"}</p>
-          
-          {/* Display turns left only if notification exists and matches the userEmail */}
-          {notification && userEmail === notification.userEmail && (
-            <p> Turns left: {notification.turnsLeft}</p>
-          )}
-          
-          <button onClick={handleBuzzerClick} disabled={buzzerLocked}>
-            Press Buzzer
-          </button>
-          {userEmail === speaker && (
-            <>
-              <p>Your transcript: {text}</p>
-              <button onClick={finishSpeaking}>Finish Speaking</button>
-            </>
-          )}
+        <div className="game-container flex flex-col justify-center items-center pt-10">
+          <div className="debate-topic text-xl w-full max-w-md md:max-w-[700px] text-center">
+            <p className="text-sm">Topic:</p>
+            <p className="mt-2">{debateTopic}</p>
+            <div
+              className="text-left mt-5 text-sm h-[300px] overflow-y-auto md:mt-[50px]"
+              ref={threadContainerRef}
+            >
+              <ul className="mb-5">
+                {thread.map((item, index) => (
+                  <li className="mt-2" key={index}>
+                    <span className="mr-2 text-white">{item.userEmail}:</span>
+                    {item.debateTranscript}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="game-action-container flex flex-col w-full mt-10 justify-between items-center max-w-sm md:max-w-[700px] md:flex-row">
+            <div className="flex-shrink-0">
+              <div className="speaker-info flex flex-row items-center bg-primary p-1.5 font-[600] rounded-md text-black">
+                <img
+                  src={CurrentSpeakerIcon}
+                  className="w-5"
+                  alt="Speaker Icon"
+                />
+                <p className="text-sm">Speaker : {speaker || "None"}</p>
+              </div>
+              <div className="text-white mb-5 text-center md:text-left">
+                {notification && userEmail === notification.userEmail && (
+                  <p className="text-sm mt-4 text-white">
+                    Turns left: {notification.turnsLeft}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {userEmail === speaker ? (
+              <div className="speaker-container flex flex-row items-center">
+                <button
+                  className="btn flex items-center justify-center gap-2 bg-primary hover:bg-primary"
+                  onClick={finishSpeaking}
+                >
+                  <Lottie options={defaultOptions} height={40} width={40} />
+                  <p className="text-black">Finish Speaking</p>
+                </button>
+              </div>
+            ) : (
+              <div className="buzzer-container flex flex-row items-center">
+                <button
+                  className="btn btn-primary hover:bg-primary disabled:bg-primary disabled:text-black disabled:opacity-100 disabled:cursor-not-allowed text-black"
+                  onClick={handleBuzzerClick}
+                  disabled={buzzerLocked}
+                >
+                  <img src={BuzzerIcon} className="w-5" alt="Buzzer Icon" />
+                  <p className="text-sm">Buzzer</p>
+                </button>
+              </div>
+            )}
+          </div>
+
           <br />
-          <button
-            className="btn btn-sm btn-primary mt-5"
-            onClick={handleEndGameClick}
-          >
-            End game
-          </button>
         </div>
       ) : (
-        <div className="scenario p-4">
-          <div className="scenario-header text-3xl">Scenario</div>
-          <div className="scenario-description mt-2">
-            You and your best friend accidentally stumble upon a time machine
-            disguised as a porta-potty at a music festival. You decide to take
-            it for a spin, but something goes hilariously wrong.
+        <div className="scenario flex flex-col justify-center items-center mt-36">
+          <div className="room-code-container">
+            {isAllPlayerReady ? (
+              <div className="text-2xl mb-5 text-white">
+                Starting in {countdown}..
+              </div>
+            ) : (
+              <div className="text-2xl mb-5">
+                Room code:{" "}
+                <span className="font-[600] text-white">{roomKey}</span>
+              </div>
+            )}
           </div>
-          <ul>
+          <ul className="list bg-base-100 rounded-box shadow-md w-full max-w-md md:max-w-lg">
+            <li className="p-4 pb-2 text-xs opacity-60 tracking-wide">
+              Players in Room
+            </li>
             {users.map((user) =>
               user ? (
-                <li key={user.inferredName} className="mt-4">
-                  {user.inferredName}:{" "}
-                  <span style={{ color: user.isReady ? "green" : "red" }}>
+                <li
+                  key={user.userEmail}
+                  className="list-row p-4 gap-x-4 flex justify-between items-center border-b border-gray-200 last:border-b-0"
+                >
+                  <div className="text-lg font-semibold">
+                    {user.inferredName}
+                  </div>
+                  <div style={{ color: user.isReady ? "#03C988" : "#E94560" }}>
                     {user.isReady ? "Ready" : "Not Ready"}
-                  </span>
-                  {user.userEmail === userEmail && (
-                    <button
-                      className="btn btn-primary btn-xs mt-2"
-                      onClick={handleReadyStatus}
-                    >
-                      {isPlayerReady ? "Not ready" : "Ready"}
-                    </button>
-                  )}
+                  </div>
                 </li>
               ) : null
             )}
+            <li className="p-4 flex justify-center items-center">
+              <button
+                className="btn btn-primary btn-sm w-[150px] mt-5"
+                onClick={handleReadyStatus}
+              >
+                {isPlayerReady ? "Not ready" : "Ready"}
+              </button>
+            </li>
           </ul>
-          <div>{isAllPlayerReady}</div>
           {isAllPlayerReady && (
             <button
               className="btn btn-primary btn-sm mt-10"

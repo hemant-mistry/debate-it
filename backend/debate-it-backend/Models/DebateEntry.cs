@@ -5,6 +5,5 @@
 		public string RoomKey { get; set; }
 		public string UserEmail { get; set; }
 		public string DebateTranscript { get; set; }
-		public int Points { get; set; }	
 	}
 }
