@@ -18,6 +18,18 @@ namespace debate_it_backend.Hub
 					_connections[key] = connections;
 				}
 
+				// Get all users in the room
+				List<PlayerInfo> users = (List<PlayerInfo>)GetConnectionsByRoomKey(roomKey);
+
+				// Check if all players are ready
+				bool allReady = users.Any() && users.All(player => player.IsReady);
+
+				// If all users are ready, do not add the new user
+				if (allReady)
+				{
+					throw new InvalidOperationException("Cannot join. All players in the room are ready.");
+				}
+
 				lock (connections)
 				{
 					connections.Add(new PlayerInfo

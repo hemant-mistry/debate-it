@@ -5,6 +5,9 @@ using debate_it_backend.Models;
 using System.Collections.Concurrent;
 using Mscc.GenerativeAI;
 using debate_it_backend.Prompts;
+using System.Diagnostics;
+using Json.More;
+using System.Text.Json;
 
 namespace debate_it_backend.Hub
 {
@@ -24,24 +27,37 @@ namespace debate_it_backend.Hub
 		// Method for clients to join a room
 		public async Task JoinRoom(string roomKey, string userEmail, string inferredName)
 		{
-			// Map the email to the PlayerInfo
-			_connections.Add(userEmail, Context.ConnectionId, userEmail, inferredName, roomKey);
+			try
+			{
+				_connections.Add(userEmail, Context.ConnectionId, userEmail, inferredName, roomKey);
+				await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
+				await Clients.Group(roomKey).SendMessageToClient($"{userEmail} has joined room {roomKey}");
 
-			// Add the user to the SignalR group
-			await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
-
-			await Clients.Group(roomKey).SendMessageToClient($"{userEmail} has joined room {roomKey}");
-
-			List<PlayerInfo> users = _connections.GetUniqueInferredPlayersPerRoom(roomKey);
-
-			await Clients.Group(roomKey).SendUpdatedUserList(users);
-
-		}
+				List<PlayerInfo> users = _connections.GetUniqueInferredPlayersPerRoom(roomKey);
+				await Clients.Group(roomKey).SendUpdatedUserList(users);
+			}
+			catch (InvalidOperationException ex)
+			{
+				throw new HubException(ex.Message); // Throwing SignalR specific exception
+			}
+			catch (Exception ex)
+			{
+				throw new HubException("An unexpected error occurred while joining the room.");
+			}
+		}	
 
 		// Method for sending a message to all clients in a specific room
 		public async Task SendMessage(string roomKey, string message)
 		{
 			await Clients.Group(roomKey).SendMessageToClient(message);
+		}
+
+		public override async Task OnDisconnectedAsync(Exception? exception)
+		{
+
+			Trace.WriteLine(Context.ConnectionId + " - disconnected");
+			_connections.Remove(Context.ConnectionId);
+			await base.OnDisconnectedAsync(exception);
 		}
 
 		/*// Method for handling client leaving a room
@@ -91,7 +107,7 @@ namespace debate_it_backend.Hub
 		// Start a timer and notify all clients in the room
 		public async Task StartTimer(string roomKey)
 		{
-			for (int i = 20; i >= 0; i--)
+			for (int i = 60; i >= 0; i--)
 			{
 				await Clients.Group(roomKey).SendMessageToClient($"Time remaining: {i} seconds");
 				await Task.Delay(1000);
@@ -164,6 +180,7 @@ namespace debate_it_backend.Hub
 
 		public async Task ReceiveSpeechTranscript(string roomKey, string userEmail, string debateTranscript)
 		{
+			int turnsLeft = 0;
 			lock (_debateRecords)
 			{
 				if(!_debateRecords.TryGetValue(roomKey, out var entries))
@@ -180,10 +197,30 @@ namespace debate_it_backend.Hub
 						UserEmail = userEmail,
 						DebateTranscript = debateTranscript,
 					});
+
+					// Calculate turns left for the user (MAX TURNS 5)
+					turnsLeft = Math.Max(0, 5 - entries.Count(e => e.UserEmail == userEmail));
 				}
 			}
 
-			await Clients.Groups(roomKey).SavedTranscript("Saved the transcript for" + userEmail);
+			List<DebateEntry> debates;
+
+			debates = _debateRecords.Values
+					.SelectMany(debateList => debateList)
+					.Where(debate => debate.RoomKey == roomKey)
+					.ToList();
+
+			Notification notification = new Notification
+			{
+				UserEmail = userEmail,
+				TurnsLeft = turnsLeft,
+				DebateEntries = debates
+			};
+
+			await Clients.Groups(roomKey).SavedTranscript(notification);
+
+			// Check if debate is complete for all users
+			await CheckAndHandleGameOver(roomKey);
 		}
 
 		public async Task HandleGameOver(string roomKey)
@@ -211,31 +248,88 @@ namespace debate_it_backend.Hub
 			string response = await CallGeminiAPI(inputFormats);
 
 			await Clients.Groups(roomKey).SendDebateScores(response);
+
+			// Remove all debate records for the room from the dictionary
+			lock (_debateRecords)
+			{
+				// Iterate over a copy of the keys
+				foreach (var key in _debateRecords.Keys.ToList())
+				{
+					// Remove debate entries that belong to the given room
+					_debateRecords[key].RemoveAll(debate => debate.RoomKey == roomKey);
+
+					// If no more debates remain under this key, remove the key entirely
+					if (_debateRecords[key].Count == 0)
+					{
+						_debateRecords.Remove(key);
+					}
+				}
+			}
+
+			// Remove all user connections for the room
+			RemoveRoomConnections(roomKey);
 		}
 
-		private async Task<string> CallGeminiAPI(List<GeminiInputFormat> debates)
+		private static async Task<string> CallGeminiAPI(List<GeminiInputFormat> debates)
 		{
 			var apiKey = "AIzaSyCbzdC1Cy5PKkJfoqdv1QTYhSIn6TdBEN4"; // Replace with your actual API key
 
 			// Convert debate entries to a structured format
 			string debateText = string.Join("\n", debates.Select(d => $"{d.UserEmail}: {d.Transcript}"));
 
-			// System instruction with correct newline syntax
+			// System instruction with proper newline formatting
 			var systemInstruction = new Content($"{Prompts.Prompts.DEBATE_AI_SYSTEM_PROMPT}\nDebate Transcript:\n{debateText}");
-
 
 			IGenerativeAI genAi = new GoogleAI(apiKey);
 			var model = genAi.GenerativeModel(Model.Gemini20Flash, systemInstruction: systemInstruction);
 
-			// Properly format the request with debate content
+			// Create the request using the debate content
 			var request = new GenerateContentRequest(debateText);
 
 			try
 			{
 				var response = await model.GenerateContent(request);
+				var jsonDoc = response?.ToJsonDocument();
+				string fullJsonResponse = jsonDoc != null ? jsonDoc.RootElement.GetRawText() : null;
+				if (string.IsNullOrEmpty(fullJsonResponse))
+				{
+					return "No response";
+				}
 
-				// Extract and return response text
-				return response?.ToString() ?? "No response received";
+				// Parse the outer JSON to extract the inner JSON from the candidate response
+				using (JsonDocument doc = JsonDocument.Parse(fullJsonResponse))
+				{
+					if (doc.RootElement.TryGetProperty("Candidates", out JsonElement candidates) &&
+						candidates.GetArrayLength() > 0)
+					{
+						// Extract the first candidate's content text
+						var firstCandidate = candidates[0];
+						if (firstCandidate.TryGetProperty("Content", out JsonElement content) &&
+							content.TryGetProperty("Parts", out JsonElement parts) &&
+							parts.GetArrayLength() > 0)
+						{
+							var text = parts[0].GetProperty("Text").GetString();
+							if (!string.IsNullOrEmpty(text))
+							{
+								// Remove markdown formatting (triple backticks and optional "json")
+								text = text.Trim();
+								if (text.StartsWith("```json"))
+								{
+									text = text.Substring("```json".Length);
+								}
+								if (text.EndsWith("```"))
+								{
+									text = text.Substring(0, text.Length - 3);
+								}
+								// Clean up any extra whitespace
+								text = text.Trim();
+								// Return the inner JSON string, e.g. the leaderboard data.
+								return text;
+							}
+						}
+					}
+				}
+				return "No response";
 			}
 			catch (Exception ex)
 			{
@@ -243,6 +337,7 @@ namespace debate_it_backend.Hub
 				return "Error processing request";
 			}
 		}
+
 
 		private async Task<string> GenerateDebateTopic(string topic)
 		{
@@ -269,6 +364,42 @@ namespace debate_it_backend.Hub
 			{
 				Console.WriteLine($"Error calling Gemini API: {ex.Message}");
 				return "Error processing request";
+			}
+		}
+
+		private async Task CheckAndHandleGameOver(string roomKey)
+		{
+			bool isGameOver = false;
+			lock (_debateRecords)
+			{
+				if(_debateRecords.TryGetValue(roomKey, out var entries))
+				{
+					// Group by user and check if every user has at least 5 entries
+					var userCounts = entries.GroupBy(e => e.UserEmail)
+											.Select(g => new {User = g.Key, Count = g.Count()});
+
+					if(userCounts.All(u => u.Count >=5))
+					{
+						isGameOver = true;
+					}
+				}
+			}
+
+			if(isGameOver)
+			{
+				await HandleGameOver(roomKey);
+			}
+		}
+
+		private void RemoveRoomConnections(string roomKey)
+		{
+			lock (_connections)
+			{
+				var usersInRoom = _connections.GetConnectionsByRoomKey(roomKey);
+				foreach (var user in usersInRoom)
+				{
+					_connections.Remove(user.ConnectionId);
+				}
 			}
 		}
 

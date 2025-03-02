@@ -29,36 +29,50 @@ function HomePage({ signalRConnection }: HomePageProps) {
   }, [signalRConnection, dispatch]);
 
   const handleJoinRoom = async () => {
-    const response = await fetch(
-      `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/join-room`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ playerName, roomKey }),
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/join-room`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ playerName, roomKey }),
+        }
+      );
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to join room.");
       }
-    );
-
-    if (response.ok) {
+  
       if (signalRConnection) {
         try {
-          await signalRConnection.invoke(
-            "JoinRoom",
-            roomKey,
-            userEmail,
-            playerName
-          );
+          await signalRConnection.invoke("JoinRoom", roomKey, userEmail, playerName);
           console.log("Joined room successfully");
           navigate(`/hub/${roomKey}`);
         } catch (err) {
           console.error("JoinRoom failed: ", err);
+          if (err instanceof Error) {
+            alert(err.message || "Error while joining the room. Please try again.");
+          } else {
+            alert("Error while joining the room. Please try again.");
+          }
         }
+      } else {
+        throw new Error("SignalR connection not available.");
       }
-    } else {
-      console.error("Failed to join room");
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      if (err instanceof Error) {
+        alert(err.message || "An unexpected error occurred. Please try again.");
+      } else {
+        alert("An unexpected error occurred. Please try again.");
+      }
     }
   };
+  
+  
 
   const handleCreateRoom = async () => {
     const response = await fetch(
@@ -95,21 +109,21 @@ function HomePage({ signalRConnection }: HomePageProps) {
 
       <div className="flex justify-center items-center">
 
-        <div className="card flex items-center bg-black shadow-xl p-4 justify-center mt-[100px] w-[300px] pb-10">
-          <div className="main-header text-5xl text-center mt-[10px]">
+        <div className="card flex items-center bg-black shadow-xl p-4 justify-center w-[300px] pb-10 mt-[150px] md:mt-[50px]">
+          <div className="main-header text-4xl text-center">
             <i>Debate</i> it
           </div>
           <div className="flex-row card-body">
             <button
               className={`btn ${isJoinRoom ? "btn-ghost" : "btn-secondary"
-                } btn-sm`}
+                } btn-xs`}
               onClick={() => setIsJoinRoom(false)}
             >
               Create Room
             </button>
             <button
               className={`btn ${isJoinRoom ? "btn-secondary" : "btn-ghost"
-                } btn-sm`}
+                } btn-xs`}
               onClick={() => setIsJoinRoom(true)}
             >
               Join Room
@@ -124,7 +138,7 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 type="text"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                className="input input-bordered"
+                className="input input-bordered input-sm"
               />
               <div className="label">
                 <span className="label-text">Enter room key:</span>
@@ -133,9 +147,9 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 type="text"
                 value={roomKey}
                 onChange={(e) => setRoomKey(e.target.value)}
-                className="input input-bordered"
+                className="input input-bordered input-sm"
               />
-              <button className="btn btn-primary" onClick={handleJoinRoom}>
+              <button className="btn btn-primary btn-sm" onClick={handleJoinRoom}>
                 Join Room
               </button>
             </div>
@@ -148,18 +162,19 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 type="text"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                className="input input-bordered"
+                className="input input-bordered input-sm"
               />
               <div className="label">
-                <span className="label-text">Enter number of question:</span>
+                <span className="label-text">Topic:</span>
               </div>
               <input
                 type="text"
                 value={topic}
+                placeholder="Ex Sports, Politics"
                 onChange={(e) => setTopic(e.target.value)}
-                className="input input-bordered"
+                className="input input-bordered input-sm"
               />
-              <button className="btn btn-primary" onClick={handleCreateRoom}>
+              <button className="btn btn-primary btn-sm" onClick={handleCreateRoom}>
                 Create Room
               </button>
             </div>
