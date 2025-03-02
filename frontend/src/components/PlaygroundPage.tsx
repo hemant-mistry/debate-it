@@ -8,7 +8,7 @@ import Lottie from "react-lottie";
 import listeningAnimation from "../lottie/listening.json";
 import CurrentSpeakerIcon from "../assets/debate-mic.png";
 import BuzzerIcon from "../assets/debate-buzzer.png";
-
+import CopyToClipboard from "../assets/copy-to-clipboard.png";
 
 interface PlaygroundPageProps {
   signalRConnection: signalR.HubConnection | null;
@@ -50,6 +50,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
   const [thread, setThread] = useState<DebateEntry[]>([]);
+  const [tooltipText, setTooltipText] = useState("Copy to Clipboard");
   const threadContainerRef = useRef<HTMLDivElement>(null);
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
 
@@ -144,7 +145,8 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   // Auto-scroll to bottom when the text changes
   useEffect(() => {
     if (transcriptScrollRef.current) {
-      transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight;
+      transcriptScrollRef.current.scrollTop =
+        transcriptScrollRef.current.scrollHeight;
     }
   }, [text]);
 
@@ -168,10 +170,19 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
   };
 
-  const handlePlayAgain = () =>{
+  const handleCopy = () => {
+    if (roomKey) {
+      navigator.clipboard.writeText(roomKey);
+      setTooltipText("Copied");
+      // Optionally, revert the tooltip back after 2 seconds
+      setTimeout(() => setTooltipText("Copy to Clipboard"), 2000);
+    }
+  };
+
+  const handlePlayAgain = () => {
     console.log("HandlePlayAgain function triggered");
-    navigate('/');
-  }
+    navigate("/");
+  };
 
   const handleBuzzerClick = () => {
     console.log("Inside BuzzerClick function!");
@@ -291,10 +302,11 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
               </ul>
             </div>
           </div>
-          <div ref={transcriptScrollRef} className="text-left  text-sm h-[50px] overflow-y-auto">
-            
+          <div
+            ref={transcriptScrollRef}
+            className="text-left  text-sm h-[50px] overflow-y-auto"
+          >
             {text}
-
           </div>
           <div className="game-action-container flex flex-col w-full mt-10 justify-between items-center max-w-sm md:max-w-[700px] md:flex-row">
             <div className="flex-shrink-0">
@@ -314,10 +326,9 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
                 )}
               </div>
             </div>
-            
+
             {userEmail === speaker ? (
               <div className="speaker-container flex flex-row items-center">
-                
                 <button
                   className="btn flex items-center justify-center gap-2 bg-primary hover:bg-primary"
                   onClick={finishSpeaking}
@@ -350,9 +361,18 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
                 Starting in {countdown}..
               </div>
             ) : (
-              <div className="text-2xl mb-5">
+              <div className="text-2xl mb-5 flex flex-row items-center gap-2">
                 Room code:{" "}
                 <span className="font-[600] text-white">{roomKey}</span>
+                <div className="flex tooltip" data-tip={tooltipText}>
+                  <button className="btn btn-xs w-[45px]" onClick={handleCopy}>
+                    <img
+                      src={CopyToClipboard}
+                      className="w-10"
+                      alt="Copy Icon"
+                    />
+                  </button>
+                </div>
               </div>
             )}
           </div>
