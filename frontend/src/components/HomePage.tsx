@@ -109,7 +109,7 @@ function HomePage({ signalRConnection }: HomePageProps) {
 
       <div className="flex justify-center items-center">
 
-        <div className="card flex items-center bg-black shadow-xl p-4 justify-center w-[300px] pb-10 mt-[150px] md:mt-[50px]">
+        <div className="card flex items-center bg-black shadow-xl p-4 justify-center w-[300px] mt-[150px] md:mt-2 ">
           <div className="main-header text-4xl text-center">
             <i>Debate</i> it
           </div>
