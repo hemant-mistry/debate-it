@@ -6,6 +6,8 @@ using System.Collections.Concurrent;
 using Mscc.GenerativeAI;
 using debate_it_backend.Prompts;
 using System.Diagnostics;
+using Json.More;
+using System.Text.Json;
 
 namespace debate_it_backend.Hub
 {
@@ -247,33 +249,87 @@ namespace debate_it_backend.Hub
 
 			await Clients.Groups(roomKey).SendDebateScores(response);
 
+			// Remove all debate records for the room from the dictionary
+			lock (_debateRecords)
+			{
+				// Iterate over a copy of the keys
+				foreach (var key in _debateRecords.Keys.ToList())
+				{
+					// Remove debate entries that belong to the given room
+					_debateRecords[key].RemoveAll(debate => debate.RoomKey == roomKey);
+
+					// If no more debates remain under this key, remove the key entirely
+					if (_debateRecords[key].Count == 0)
+					{
+						_debateRecords.Remove(key);
+					}
+				}
+			}
+
 			// Remove all user connections for the room
 			RemoveRoomConnections(roomKey);
 		}
 
-		private async Task<string> CallGeminiAPI(List<GeminiInputFormat> debates)
+		private static async Task<string> CallGeminiAPI(List<GeminiInputFormat> debates)
 		{
 			var apiKey = "AIzaSyCbzdC1Cy5PKkJfoqdv1QTYhSIn6TdBEN4"; // Replace with your actual API key
 
 			// Convert debate entries to a structured format
 			string debateText = string.Join("\n", debates.Select(d => $"{d.UserEmail}: {d.Transcript}"));
 
-			// System instruction with correct newline syntax
+			// System instruction with proper newline formatting
 			var systemInstruction = new Content($"{Prompts.Prompts.DEBATE_AI_SYSTEM_PROMPT}\nDebate Transcript:\n{debateText}");
-
 
 			IGenerativeAI genAi = new GoogleAI(apiKey);
 			var model = genAi.GenerativeModel(Model.Gemini20Flash, systemInstruction: systemInstruction);
 
-			// Properly format the request with debate content
+			// Create the request using the debate content
 			var request = new GenerateContentRequest(debateText);
 
 			try
 			{
 				var response = await model.GenerateContent(request);
+				var jsonDoc = response?.ToJsonDocument();
+				string fullJsonResponse = jsonDoc != null ? jsonDoc.RootElement.GetRawText() : null;
+				if (string.IsNullOrEmpty(fullJsonResponse))
+				{
+					return "No response";
+				}
 
-				// Extract and return response text
-				return response?.ToString() ?? "No response received";
+				// Parse the outer JSON to extract the inner JSON from the candidate response
+				using (JsonDocument doc = JsonDocument.Parse(fullJsonResponse))
+				{
+					if (doc.RootElement.TryGetProperty("Candidates", out JsonElement candidates) &&
+						candidates.GetArrayLength() > 0)
+					{
+						// Extract the first candidate's content text
+						var firstCandidate = candidates[0];
+						if (firstCandidate.TryGetProperty("Content", out JsonElement content) &&
+							content.TryGetProperty("Parts", out JsonElement parts) &&
+							parts.GetArrayLength() > 0)
+						{
+							var text = parts[0].GetProperty("Text").GetString();
+							if (!string.IsNullOrEmpty(text))
+							{
+								// Remove markdown formatting (triple backticks and optional "json")
+								text = text.Trim();
+								if (text.StartsWith("```json"))
+								{
+									text = text.Substring("```json".Length);
+								}
+								if (text.EndsWith("```"))
+								{
+									text = text.Substring(0, text.Length - 3);
+								}
+								// Clean up any extra whitespace
+								text = text.Trim();
+								// Return the inner JSON string, e.g. the leaderboard data.
+								return text;
+							}
+						}
+					}
+				}
+				return "No response";
 			}
 			catch (Exception ex)
 			{
@@ -281,6 +337,7 @@ namespace debate_it_backend.Hub
 				return "Error processing request";
 			}
 		}
+
 
 		private async Task<string> GenerateDebateTopic(string topic)
 		{

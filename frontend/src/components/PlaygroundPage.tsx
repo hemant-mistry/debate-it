@@ -3,10 +3,12 @@ import { useSelector } from "react-redux";
 import { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { RootState } from "../redux/store";
+import { useNavigate } from "react-router-dom";
 import Lottie from "react-lottie";
 import listeningAnimation from "../lottie/listening.json";
 import CurrentSpeakerIcon from "../assets/debate-mic.png";
 import BuzzerIcon from "../assets/debate-buzzer.png";
+
 
 interface PlaygroundPageProps {
   signalRConnection: signalR.HubConnection | null;
@@ -24,7 +26,14 @@ interface DebateEntry {
   debateTranscript: string;
 }
 
+// Define a TypeScript interface for a score entry
+interface ScoreEntry {
+  UserEmail: string;
+  Score: number;
+}
+
 function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
+  const navigate = useNavigate();
   const { roomKey } = useParams<{ roomKey: string }>();
   const users = useSelector((state: RootState) => state.room.users);
   const userEmail = localStorage.getItem("UserEmail");
@@ -36,12 +45,13 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [debateTopic, setDebateTopic] = useState<string>();
   const [text, setText] = useState<string>();
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
-  const [scores, setScores] = useState<string>();
+  const [scores, setScores] = useState<ScoreEntry[]>([]);
   const [notification, setNotification] = useState<Notification>();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
   const [thread, setThread] = useState<DebateEntry[]>([]);
   const threadContainerRef = useRef<HTMLDivElement>(null);
+  const transcriptScrollRef = useRef<HTMLDivElement>(null);
 
   const defaultOptions = {
     loop: true,
@@ -74,9 +84,15 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
       });
 
       signalRConnection.on("SendDebateScores", (debateScores: string) => {
-        console.log(debateScores);
+        console.log("Received debateScores:", debateScores);
         setIsGameOver(true);
-        setScores(debateScores);
+        try {
+          // Parse the JSON string into an array of score entries
+          const parsedScores: ScoreEntry[] = JSON.parse(debateScores);
+          setScores(parsedScores);
+        } catch (error) {
+          console.error("Error parsing debate scores:", error);
+        }
       });
 
       signalRConnection.on("SavedTranscript", (notification: Notification) => {
@@ -125,6 +141,13 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
   }, [thread]);
 
+  // Auto-scroll to bottom when the text changes
+  useEffect(() => {
+    if (transcriptScrollRef.current) {
+      transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight;
+    }
+  }, [text]);
+
   const handleReadyStatus = () => {
     const newReadyStatus = !isPlayerReady;
     setIsPlayerReady(newReadyStatus);
@@ -144,6 +167,11 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
       });
     }
   };
+
+  const handlePlayAgain = () =>{
+    console.log("HandlePlayAgain function triggered");
+    navigate('/');
+  }
 
   const handleBuzzerClick = () => {
     console.log("Inside BuzzerClick function!");
@@ -213,7 +241,33 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   };
 
   if (isGameOver) {
-    return <>Game over! Scores are as follows: {scores}</>;
+    // Create a sorted copy of scores in descending order by Score
+    const sortedScores = [...scores].sort((a, b) => b.Score - a.Score);
+
+    return (
+      <div className="flex flex-col max-w-sm items-center mx-auto justify-center mt-[150px]">
+        <ul className="list bg-base-100 rounded-box shadow-md">
+          <li className="p-4 pb-3 text-4xl opacity-60 tracking-wide">
+            Leaderboard
+          </li>
+          {sortedScores.map((score, index) => (
+            <li
+              key={index}
+              className="list-row flex flex-row gap-5 items-center justify-between pb-3 border-b border-gray-200 mt-5 mb-5"
+            >
+              <div className="list-col-grow">
+                <div>{score.UserEmail}</div>
+              </div>
+              <div className="scores text-2xl">{score.Score}</div>
+            </li>
+          ))}
+        </ul>
+
+        <button className="btn btn-primary btn-sm" onClick={handlePlayAgain}>
+          Play Again
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -237,6 +291,11 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
               </ul>
             </div>
           </div>
+          <div ref={transcriptScrollRef} className="text-left  text-sm h-[50px] overflow-y-auto">
+            
+            {text}
+
+          </div>
           <div className="game-action-container flex flex-col w-full mt-10 justify-between items-center max-w-sm md:max-w-[700px] md:flex-row">
             <div className="flex-shrink-0">
               <div className="speaker-info flex flex-row items-center bg-primary p-1.5 font-[600] rounded-md text-black">
@@ -255,9 +314,10 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
                 )}
               </div>
             </div>
-
+            
             {userEmail === speaker ? (
               <div className="speaker-container flex flex-row items-center">
+                
                 <button
                   className="btn flex items-center justify-center gap-2 bg-primary hover:bg-primary"
                   onClick={finishSpeaking}
