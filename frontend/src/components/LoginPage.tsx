@@ -29,12 +29,13 @@ function LoginPage() {
   return (
     <div className="flex items-start min-h-screen pt-[180px]">
       <div className="flex flex-col items-center text-center w-full">
+      <div className="badge bg-[#03C988] text-black mb-2 font-[600]">Beta release</div>
         <p className="text-3xl mb-4">
-          Welcome to <i>Twist</i> it!
+          Welcome to <i className="text-white">Debate</i> it!
         </p>
+        
         <p className="text-1xl mb-8">
-          Click on the below button to sign in and fu*ck around with your
-          friends!
+          Click on the below button to sign in and <span className="text-white underline">start debating!</span>
         </p>
         <button
           className="btn btn-neutral px-4"
@@ -64,7 +65,7 @@ function LoginPage() {
               d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
             />
           </svg>
-          {loading ? "Logging in..." : "SignUp via Google"}
+          {loading ? "Logging in..." : "Sign Up via Google"}
         </button>
       </div>
     </div>
