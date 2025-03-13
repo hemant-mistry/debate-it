@@ -272,7 +272,7 @@ namespace debate_it_backend.Hub
 
 		private static async Task<string> CallGeminiAPI(List<GeminiInputFormat> debates)
 		{
-			var apiKey = "AIzaSyCbzdC1Cy5PKkJfoqdv1QTYhSIn6TdBEN4"; // Replace with your actual API key
+			var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
 
 			// Convert debate entries to a structured format
 			string debateText = string.Join("\n", debates.Select(d => $"{d.UserEmail}: {d.Transcript}"));
@@ -341,7 +341,7 @@ namespace debate_it_backend.Hub
 
 		private async Task<string> GenerateDebateTopic(string topic)
 		{
-			var apiKey = "AIzaSyCbzdC1Cy5PKkJfoqdv1QTYhSIn6TdBEN4"; // Replace with your actual API key
+			var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
 
 			// System instruction with correct newline syntax
 			var systemInstruction = new Content($"{Prompts.Prompts.GENERATE_DEBATE_STATEMENTS}");
