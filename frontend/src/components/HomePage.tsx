@@ -29,6 +29,10 @@ function HomePage({ signalRConnection }: HomePageProps) {
   }, [signalRConnection, dispatch]);
 
   const handleJoinRoom = async () => {
+    if(!playerName || !roomKey){
+      alert("Please enter both your name and the room key");
+      return;
+    }
     try {
       const response = await fetch(
         `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/join-room`,
@@ -75,6 +79,10 @@ function HomePage({ signalRConnection }: HomePageProps) {
   
 
   const handleCreateRoom = async () => {
+    if(!playerName || !topic){
+      alert("Please enter both your name and the topic");
+      return;
+    }
     const response = await fetch(
       `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/create-room`,
       {
