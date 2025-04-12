@@ -4,11 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { RootState } from "../redux/store";
 import { useNavigate } from "react-router-dom";
-import Lottie from "react-lottie";
-import listeningAnimation from "../lottie/listening.json";
-import CurrentSpeakerIcon from "../assets/debate-mic.png";
-import BuzzerIcon from "../assets/debate-buzzer.png";
 import CopyToClipboard from "../assets/copy-to-clipboard.png";
+import {DebateModes} from "../constants/debateMode";
+import VoiceDebate from "./ui/VoiceDebate";
 
 interface PlaygroundPageProps {
   signalRConnection: signalR.HubConnection | null;
@@ -50,18 +48,10 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
   const [thread, setThread] = useState<DebateEntry[]>([]);
+  const [mode, setMode] = useState<number>();
   const [tooltipText, setTooltipText] = useState("Copy to Clipboard");
   const threadContainerRef = useRef<HTMLDivElement>(null);
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
-
-  const defaultOptions = {
-    loop: true,
-    autoplay: true,
-    animationData: listeningAnimation,
-    rendererSettings: {
-      preserveAspectRatio: "xMidYMid slice",
-    },
-  };
 
   useEffect(() => {
     if (signalRConnection) {
@@ -71,6 +61,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
 
       signalRConnection.on("SendDebateTopicwithMode", (response: string, mode:number) => {
         setIsGameStarted(true);
+        setMode(mode);
         console.log("The selected mode is", mode);
         setDebateTopic(response);
       });
@@ -284,77 +275,23 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
 
   return (
     <div className="container mx-auto px-10 md:mt-10">
-      {isGameStarted ? (
-        <div className="game-container flex flex-col justify-center items-center pt-10">
-          <div className="debate-topic text-xl w-full max-w-md md:max-w-[700px] text-center">
-            <p className="text-sm">Topic:</p>
-            <p className="mt-2">{debateTopic}</p>
-            <div
-              className="text-left mt-5 text-sm h-[300px] overflow-y-auto md:mt-[50px]"
-              ref={threadContainerRef}
-            >
-              <ul className="mb-5">
-                {thread.map((item, index) => (
-                  <li className="mt-2" key={index}>
-                    <span className="mr-2 text-white">{item.userEmail}:</span>
-                    {item.debateTranscript}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div
-            ref={transcriptScrollRef}
-            className="text-left  text-sm h-[50px] overflow-y-auto"
-          >
-            {text}
-          </div>
-          <div className="game-action-container flex flex-col w-full mt-10 justify-between items-center max-w-sm md:max-w-[700px] md:flex-row">
-            <div className="flex-shrink-0">
-              <div className="speaker-info flex flex-row items-center bg-primary p-1.5 font-[600] rounded-md text-black">
-                <img
-                  src={CurrentSpeakerIcon}
-                  className="w-5"
-                  alt="Speaker Icon"
-                />
-                <p className="text-sm">Speaker : {speaker || "None"}</p>
-              </div>
-              <div className="text-white mb-5 text-center md:text-left">
-                {notification && userEmail === notification.userEmail && (
-                  <p className="text-sm mt-4 text-white">
-                    Turns left: {notification.turnsLeft}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {userEmail === speaker ? (
-              <div className="speaker-container flex flex-row items-center">
-                <button
-                  className="btn flex items-center justify-center gap-2 bg-primary hover:bg-primary"
-                  onClick={finishSpeaking}
-                >
-                  <Lottie options={defaultOptions} height={40} width={40} />
-                  <p className="text-black">Finish Speaking</p>
-                </button>
-              </div>
-            ) : (
-              <div className="buzzer-container flex flex-row items-center">
-                <button
-                  className="btn btn-primary hover:bg-primary disabled:bg-primary disabled:text-black disabled:opacity-100 disabled:cursor-not-allowed text-black"
-                  onClick={handleBuzzerClick}
-                  disabled={buzzerLocked}
-                >
-                  <img src={BuzzerIcon} className="w-5" alt="Buzzer Icon" />
-                  <p className="text-sm">Buzzer</p>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <br />
-        </div>
-      ) : (
+      {isGameStarted && mode==DebateModes.VOICE ? (
+        <VoiceDebate
+        debateTopic={debateTopic || ""}
+        threadContainerRef={threadContainerRef}
+        thread={thread}
+        transcriptScrollRef={transcriptScrollRef}
+        text={text || ""}
+        speaker={speaker}
+        notification={notification || null}
+        userEmail={userEmail || ""}
+        buzzerLocked={buzzerLocked}
+        handleBuzzerClick={handleBuzzerClick}
+        finishSpeaking={finishSpeaking}
+      />
+      ) : isGameStarted && mode==DebateModes.TEXT ? (
+        <>Text Mode</>
+      ):(
         <div className="scenario flex flex-col justify-center items-center mt-36">
           <div className="room-code-container">
             {isAllPlayerReady ? (

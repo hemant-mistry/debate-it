@@ -8,22 +8,19 @@ namespace debate_it_backend.Hub.DebateHandlers
 {
 	public class VoiceDebateHandler:IDebateHandler
 	{
-		private readonly ConnectionMapping<string> _connections;
 		private readonly ConcurrentDictionary<string, List<DebateEntry>> _debateRecords = new();
 		private readonly ConcurrentDictionary<string, string> _roomSpeakers = new();
 		private readonly ConcurrentDictionary<string ,bool> _roomBuzzerState = new();
 		private readonly GeminiService _geminiService;
 
 		public VoiceDebateHandler(
-			ConnectionMapping<string> connections,
 			GeminiService geminiService)
 		{
-			_connections = connections;
 			_geminiService = geminiService;
 		}
 
 		public async Task StartDebate(string roomKey, string topicKey,
-			IHubCallerClients<IRoomClient> clients, IGroupManager groups)
+			IHubCallerClients<IRoomClient> clients)
 		{
 
 			var topic = await _geminiService.GenerateDebateTopic(topicKey);
@@ -32,7 +29,7 @@ namespace debate_it_backend.Hub.DebateHandlers
 		}
 
 		public async Task ProcessDebateEntry(string roomKey, string userEmail, string content,
-		IHubCallerClients<IRoomClient> clients, IGroupManager groups)
+		IHubCallerClients<IRoomClient> clients)
 		{
 			int turnsLeft = 0;
 			lock (_debateRecords)
@@ -74,10 +71,10 @@ namespace debate_it_backend.Hub.DebateHandlers
 			await clients.Groups(roomKey).SavedTranscript(notification);
 
 			// Check if debate is complete for all users
-			await CheckAndHandleGameOver(roomKey, clients, groups);
+			await CheckAndHandleGameOver(roomKey, clients);
 		}
 
-		public async Task CheckAndHandleGameOver(string roomKey, IHubCallerClients<IRoomClient> clients, IGroupManager groups)
+		public async Task CheckAndHandleGameOver(string roomKey, IHubCallerClients<IRoomClient> clients)
 		{
 			bool isGameOver = false;
 			lock (_debateRecords)
@@ -97,11 +94,11 @@ namespace debate_it_backend.Hub.DebateHandlers
 
 			if (isGameOver)
 			{
-				await HandleGameOver(roomKey, clients, groups);
+				await HandleGameOver(roomKey, clients);
 			}
 		}
 
-		private async Task HandleGameOver(string roomKey, IHubCallerClients<IRoomClient> clients, IGroupManager groups)
+		private async Task HandleGameOver(string roomKey, IHubCallerClients<IRoomClient> clients)
 		{
 			List<GeminiInputFormat> inputFormats = new List<GeminiInputFormat>();
 
@@ -128,7 +125,7 @@ namespace debate_it_backend.Hub.DebateHandlers
 			_debateRecords.TryRemove(roomKey, out _);
 		}
 
-		public async Task BuzzerHit(string roomKey, string userEmail, IHubCallerClients<IRoomClient> clients, IGroupManager groups)
+		public async Task BuzzerHit(string roomKey, string userEmail, IHubCallerClients<IRoomClient> clients)
 		{
 			if (!_roomBuzzerState.GetValueOrDefault(roomKey, false))
 			{
@@ -138,7 +135,7 @@ namespace debate_it_backend.Hub.DebateHandlers
 			}
 		}
 
-		public async Task FinishSpeaking(string roomKey, IHubCallerClients<IRoomClient> clients, IGroupManager groups)
+		public async Task FinishSpeaking(string roomKey, IHubCallerClients<IRoomClient> clients)
 		{
 			if (_roomSpeakers.TryRemove(roomKey, out _))
 			{

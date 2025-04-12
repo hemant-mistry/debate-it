@@ -15,6 +15,7 @@ public class DebateHandlerFactory
 		return mode switch
 		{
 			DebateMode.Voice => _serviceProvider.GetRequiredService<VoiceDebateHandler>(),
+			DebateMode.Text => _serviceProvider.GetRequiredService<TextDebateHandler>(),
 			_ => throw new ArgumentException($"Unsupported debate mode: {mode}")
 		};
 	}

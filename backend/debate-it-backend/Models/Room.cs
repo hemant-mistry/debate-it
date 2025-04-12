@@ -14,6 +14,7 @@ namespace debate_it_backend.Models
 		public DateTime CreatedAt { get; set; }
 		[Column("topic")]
 		public string Topic { get; set; }
+		[Column("debate_mode")]
 		public DebateMode DebateMode { get; set; } = DebateMode.Voice;
 	}
 }

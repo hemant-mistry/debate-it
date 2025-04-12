@@ -46,7 +46,7 @@ namespace debate_it_backend.Hub
 			_roomHandlers[roomKey] = handler;
 
 			// Start the debate with the handler
-			await handler.StartDebate(roomKey, topic, Clients, Groups);
+			await handler.StartDebate(roomKey, topic, Clients);
 		}
 
 		// Modified to use the strategy pattern
@@ -64,14 +64,14 @@ namespace debate_it_backend.Hub
 			}
 
 			// Process the transcript using the appropriate handler
-			await handler.ProcessDebateEntry(roomKey, userEmail, debateTranscript, Clients, Groups);
+			await handler.ProcessDebateEntry(roomKey, userEmail, debateTranscript, Clients);
 		}
 
 		public async Task BuzzerHit(string roomKey, string userEmail)
 		{
 			if (_roomHandlers.TryGetValue(roomKey, out var handler) && handler is VoiceDebateHandler voiceHandler)
 			{
-				await voiceHandler.BuzzerHit(roomKey, userEmail, Clients, Groups);
+				await voiceHandler.BuzzerHit(roomKey, userEmail, Clients);
 			}
 		}
 
@@ -79,7 +79,7 @@ namespace debate_it_backend.Hub
 		{
 			if (_roomHandlers.TryGetValue(roomKey, out var handler) && handler is VoiceDebateHandler voiceHandler)
 			{
-				await voiceHandler.FinishSpeaking(roomKey, Clients, Groups);
+				await voiceHandler.FinishSpeaking(roomKey, Clients);
 			}
 		}
 
