@@ -10,7 +10,7 @@ namespace debate_it_backend.Hub.Interfaces
 		Task SendPlayerInfo(PlayerInfo playerInfo);
 		Task SendAllPlayersReady(bool isAllPlayerReady);
 		Task SendRelayMessage(string userEmail);
-		Task SendDebateTopic(string roomKey);
+		Task SendDebateTopicWithMode(string roomKey, int mode);
 		Task SpeakerFinished(string message);
 		Task SavedTranscript(Notification notification);
 		Task SendDebateScores(string debateScores);

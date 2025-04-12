@@ -69,8 +69,9 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         setIsAllPlayerReady(allReady);
       });
 
-      signalRConnection.on("SendDebateTopic", (response: string) => {
+      signalRConnection.on("SendDebateTopicwithMode", (response: string, mode:number) => {
         setIsGameStarted(true);
+        console.log("The selected mode is", mode);
         setDebateTopic(response);
       });
 
