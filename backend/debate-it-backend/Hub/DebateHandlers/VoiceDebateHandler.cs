@@ -6,7 +6,7 @@ using Supabase.Interfaces;
 using System.Collections.Concurrent;
 namespace debate_it_backend.Hub.DebateHandlers
 {
-	public class VoiceDebateHandler:IDebateHandler
+	public class VoiceDebateHandler : IDebateHandler
 	{
 		private readonly ConcurrentDictionary<string, List<DebateEntry>> _debateRecords = new();
 		private readonly ConcurrentDictionary<string, string> _roomSpeakers = new();
@@ -20,7 +20,7 @@ namespace debate_it_backend.Hub.DebateHandlers
 		}
 
 		public async Task StartDebate(string roomKey, string topicKey,
-			IHubCallerClients<IRoomClient> clients)
+			IHubCallerClients<IRoomClient> clients, List<string>? joinedUsers = null)
 		{
 
 			var topic = await _geminiService.GenerateDebateTopic(topicKey);
@@ -143,5 +143,7 @@ namespace debate_it_backend.Hub.DebateHandlers
 				await clients.Groups(roomKey).SpeakerFinished("Speaker finished");
 			}
 		}
+
+		
 	}
 }

@@ -1,4 +1,4 @@
 export const DebateModes = Object.freeze({
-    VOICE:1,
-    TEXT:2
-});
+    TEXT: "Text",
+    VOICE: "Voice",
+  });

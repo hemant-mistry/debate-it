@@ -14,6 +14,6 @@ namespace debate_it_backend.Hub.Interfaces
 		Task SpeakerFinished(string message);
 		Task SavedTranscript(Notification notification);
 		Task SendDebateScores(string debateScores);
-
+		Task SendCurrentUser(string userEmail);
 	}
 }

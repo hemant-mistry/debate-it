@@ -5,8 +5,9 @@ import * as signalR from "@microsoft/signalr";
 import { RootState } from "../redux/store";
 import { useNavigate } from "react-router-dom";
 import CopyToClipboard from "../assets/copy-to-clipboard.png";
-import {DebateModes} from "../constants/debateMode";
+import { DebateModes } from "../constants/debateMode";
 import VoiceDebate from "./ui/VoiceDebate";
+import TextDebate from "./ui/TextDebate";
 
 interface PlaygroundPageProps {
   signalRConnection: signalR.HubConnection | null;
@@ -30,6 +31,9 @@ interface ScoreEntry {
   Score: number;
 }
 
+type DebateModeType = typeof DebateModes[keyof typeof DebateModes];
+
+
 function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const navigate = useNavigate();
   const { roomKey } = useParams<{ roomKey: string }>();
@@ -48,7 +52,8 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
   const [thread, setThread] = useState<DebateEntry[]>([]);
-  const [mode, setMode] = useState<number>();
+  const [mode, setMode] = useState<DebateModeType>(DebateModes.VOICE);
+  const [textSpeaker, setTextSpeaker] = useState<string>("");
   const [tooltipText, setTooltipText] = useState("Copy to Clipboard");
   const threadContainerRef = useRef<HTMLDivElement>(null);
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
@@ -59,12 +64,18 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         setIsAllPlayerReady(allReady);
       });
 
-      signalRConnection.on("SendDebateTopicwithMode", (response: string, mode:number) => {
-        setIsGameStarted(true);
-        setMode(mode);
-        console.log("The selected mode is", mode);
-        setDebateTopic(response);
-      });
+      signalRConnection.on(
+        "SendDebateTopicwithMode",
+        (response: string, mode: number) => {
+          setIsGameStarted(true);
+          
+          const modeValue = mode === 0 ? DebateModes.TEXT : DebateModes.VOICE;
+          setMode(modeValue);
+          
+          console.log("The selected mode is", modeValue);
+          setDebateTopic(response);
+        }
+      );
 
       signalRConnection.on("SendRelayMessage", (userEmailSever: string) => {
         setSpeaker(userEmailSever);
@@ -74,6 +85,10 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
       signalRConnection.on("SpeakerFinished", () => {
         setSpeaker("");
         setBuzzerLocked(false);
+      });
+
+      signalRConnection.on("SendCurrentUser", (userEmail: string) => {
+        setTextSpeaker(userEmail);
       });
 
       signalRConnection.on("SendDebateScores", (debateScores: string) => {
@@ -219,6 +234,12 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     console.log("Speech recognition started...");
   };
 
+  const handleRoundRobin = () => {
+    if (signalRConnection) {
+      signalRConnection.invoke("GetCurrentUser", roomKey);
+    }
+  };
+
   const finishSpeaking = () => {
     if (userEmail === speaker) {
       if (signalRConnection) {
@@ -242,6 +263,21 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
       console.log("Sent the transcript to SignalR server");
     }
   };
+
+  const handleTextSendButton = () =>{
+    if(signalRConnection){
+      signalRConnection.invoke(
+        "ReceiveSpeechTranscript",
+        roomKey,
+        userEmail,
+        text
+      );
+      console.log("Sent the TEXT transcript to SignalR server");
+    }
+
+    handleRoundRobin();
+
+  }
 
   if (isGameOver) {
     // Create a sorted copy of scores in descending order by Score
@@ -275,23 +311,34 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
 
   return (
     <div className="container mx-auto px-10 md:mt-10">
-      {isGameStarted && mode==DebateModes.VOICE ? (
+      {isGameStarted && mode == DebateModes.VOICE ? (
         <VoiceDebate
-        debateTopic={debateTopic || ""}
-        threadContainerRef={threadContainerRef}
-        thread={thread}
-        transcriptScrollRef={transcriptScrollRef}
-        text={text || ""}
-        speaker={speaker}
-        notification={notification || null}
-        userEmail={userEmail || ""}
-        buzzerLocked={buzzerLocked}
-        handleBuzzerClick={handleBuzzerClick}
-        finishSpeaking={finishSpeaking}
-      />
-      ) : isGameStarted && mode==DebateModes.TEXT ? (
-        <>Text Mode</>
-      ):(
+          debateTopic={debateTopic || ""}
+          threadContainerRef={threadContainerRef}
+          thread={thread}
+          transcriptScrollRef={transcriptScrollRef}
+          text={text || ""}
+          speaker={speaker}
+          notification={notification || null}
+          userEmail={userEmail || ""}
+          buzzerLocked={buzzerLocked}
+          handleBuzzerClick={handleBuzzerClick}
+          finishSpeaking={finishSpeaking}
+        />
+      ) : isGameStarted && mode == DebateModes.TEXT ? (
+        <TextDebate
+          debateTopic={debateTopic || ""}
+          threadContainerRef={threadContainerRef}
+          thread={thread}
+          transcriptScrollRef={transcriptScrollRef}
+          text={text || ""}
+          speaker={textSpeaker}
+          notification={notification || null}
+          userEmail={userEmail || ""}
+          handleTextSendButton = {handleTextSendButton}
+          setText={setText}
+        />
+      ) : (
         <div className="scenario flex flex-col justify-center items-center mt-36">
           <div className="room-code-container">
             {isAllPlayerReady ? (

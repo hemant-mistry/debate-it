@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { setUsers } from "../redux/slices/roomSlice";
 import { UserDetails } from "../types/User";
 import Guide from "./ui/Guide";
+import { DebateModes } from "../constants/debateMode";
 
 interface HomePageProps {
   signalRConnection: signalR.HubConnection | null;
@@ -14,6 +15,9 @@ function HomePage({ signalRConnection }: HomePageProps) {
   const [playerName, setPlayerName] = useState("");
   const [roomKey, setRoomKey] = useState("");
   const [topic, setTopic] = useState("");
+  type DebateModeType = typeof DebateModes[keyof typeof DebateModes];
+  const [mode, setMode] = useState<DebateModeType>(DebateModes.TEXT);
+
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -88,6 +92,10 @@ function HomePage({ signalRConnection }: HomePageProps) {
       alert("Please enter both your name and the topic");
       return;
     }
+
+    console.log("Sending mode:", mode, "Type:", typeof mode);
+
+
     const response = await fetch(
       `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/create-room`,
       {
@@ -95,7 +103,7 @@ function HomePage({ signalRConnection }: HomePageProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ playerName, topic }),
+        body: JSON.stringify({ playerName, topic, mode }),
       }
     );
 
@@ -193,7 +201,10 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 onChange={(e) => setTopic(e.target.value)}
                 className="input input-bordered input-sm"
               />
-              <div role="tablist" className="flex items-center gap-x-2 tabs-sm mt-2 mb-2">
+              <div
+                role="tablist"
+                className="flex items-center gap-x-2 tabs-sm mt-2 mb-2"
+              >
                 <div className="label flex-shrink-0">
                   <span className="label-text text-sm font-medium">
                     Select mode:
@@ -204,9 +215,11 @@ function HomePage({ signalRConnection }: HomePageProps) {
                     <input
                       type="radio"
                       name="mode"
-                      value="text"
+                      value="TEXT"
                       className="hidden peer"
-                      defaultChecked
+                      checked={mode === "Text"}
+                      onChange={() => setMode(DebateModes.TEXT)}
+
                     />
                     <div className="tab rounded-lg text-white font-medium peer-checked:bg-[#FFA500] peer-checked:text-black">
                       Text
@@ -218,8 +231,10 @@ function HomePage({ signalRConnection }: HomePageProps) {
                     <input
                       type="radio"
                       name="mode"
-                      value="voice"
+                      value="VOICE"
                       className="hidden peer"
+                      checked={mode === "Voice"}
+                      onChange={() => setMode(DebateModes.VOICE)}
                     />
                     <div className="tab rounded-lg text-white font-medium peer-checked:bg-[#FFA500] peer-checked:text-black">
                       Voice

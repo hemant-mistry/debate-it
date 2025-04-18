@@ -45,8 +45,10 @@ namespace debate_it_backend.Hub
 			var handler = _handlerFactory.CreateHandler(room.DebateMode);
 			_roomHandlers[roomKey] = handler;
 
+			List<string> userEmails = GetUsersInRoom(roomKey);
+
 			// Start the debate with the handler
-			await handler.StartDebate(roomKey, topic, Clients);
+			await handler.StartDebate(roomKey, topic, Clients, userEmails);
 		}
 
 		// Modified to use the strategy pattern
@@ -72,6 +74,15 @@ namespace debate_it_backend.Hub
 			if (_roomHandlers.TryGetValue(roomKey, out var handler) && handler is VoiceDebateHandler voiceHandler)
 			{
 				await voiceHandler.BuzzerHit(roomKey, userEmail, Clients);
+			}
+		}
+
+		public async Task GetCurrentUser(string roomKey)
+		{
+			if(_roomHandlers.TryGetValue(roomKey, out var handler) && handler is TextDebateHandler textDebateHandler)
+			{
+				List<string> userEmails = GetUsersInRoom(roomKey);
+				await textDebateHandler.GetCurrentUser(roomKey, Clients, userEmails);
 			}
 		}
 
@@ -145,12 +156,18 @@ namespace debate_it_backend.Hub
 		}
 
 		// Get all unique users in a specific room
-		public async Task GetUsersInRoom(string roomKey)
+		public List<string> GetUsersInRoom(string roomKey)
 		{
 			// Retrieve the connections for specified roomKey
 			List<PlayerInfo> users = _connections.GetUniqueInferredPlayersPerRoom(roomKey);
+			List<string> userEmails = new List<string>();
+			foreach(var user in users)
+			{
+				userEmails.Add(user.UserEmail);
+			}
 
-			await Clients.Group(roomKey).SendUpdatedUserList(users);
+			return userEmails;
+			
 		}
 
 		// playerUniqueName = UserEmail

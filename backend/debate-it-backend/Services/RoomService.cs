@@ -22,7 +22,8 @@ public class RoomService
 			var room = new Room
 			{
 				RoomKey = roomKey,
-				Topic = request.Topic
+				Topic = request.Topic,
+				DebateMode = request.Mode == "Text"? DebateMode.Text : DebateMode.Voice
 			};
 
 			var roomResponse = await _supabaseClient.From<Room>().Insert(room);

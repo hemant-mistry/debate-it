@@ -9,20 +9,24 @@ namespace debate_it_backend.Hub.DebateHandlers
 	public class TextDebateHandler:IDebateHandler
 	{
 		private readonly ConcurrentDictionary<string, List<DebateEntry>> _debateRecords = new();
-		private readonly ConcurrentDictionary<string, string> _roomSpeakers = new();
+		private readonly ConcurrentDictionary<string, int> _roomRoundRobinIndex = new();
 		private readonly GeminiService _geminiService;
 
 		public TextDebateHandler(
-			GeminiService geminiService)
-		{
+			GeminiService geminiService, IHubContext<RoomHub> hubContext)
+		{	
 			_geminiService = geminiService;
 		}
 
-		public async Task StartDebate(string roomKey, string topicKey, IHubCallerClients<IRoomClient> clients)
+		public async Task StartDebate(string roomKey, string topicKey, IHubCallerClients<IRoomClient> clients, List<string> joinedUsers)
 		{
 			var topic = await _geminiService.GenerateDebateTopic(topicKey);
-			await clients.Group(roomKey).SendDebateTopicWithMode(topic, 2);
+			await clients.Group(roomKey).SendDebateTopicWithMode(topic, 0);
 			_debateRecords[roomKey] = new List<DebateEntry>();
+
+			// Call GetUsersInRoom from RoomHub
+			string currentUser = EmailRoundRobin(roomKey, joinedUsers);
+			await clients.Group(roomKey).SendCurrentUser(currentUser);
 		}
 
 		public async Task ProcessDebateEntry(string roomKey, string userEmail, string content, IHubCallerClients<IRoomClient> clients)
@@ -111,6 +115,27 @@ namespace debate_it_backend.Hub.DebateHandlers
 
 			// Clean up
 			_debateRecords.TryRemove(roomKey, out _);
+		}
+
+		public async Task GetCurrentUser(string roomKey, IHubCallerClients<IRoomClient> clients, List<string> userEmails)
+		{
+			await clients.Group(roomKey).SendCurrentUser(EmailRoundRobin(roomKey, userEmails));
+		}
+
+		public string EmailRoundRobin(string roomKey,List<string> emails)
+		{
+			
+			if(emails == null || emails.Count == 0)
+			{
+				throw new ArgumentException("There are no people in the room");
+			}
+
+			var index = _roomRoundRobinIndex.GetOrAdd(roomKey, -1);
+			index = (index+1)%emails.Count;
+			_roomRoundRobinIndex[roomKey] = index;
+
+			return emails[index];
+
 		}
 	}
 }

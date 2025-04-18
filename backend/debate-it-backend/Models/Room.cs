@@ -1,5 +1,7 @@
 ﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace debate_it_backend.Models
 {
@@ -15,6 +17,7 @@ namespace debate_it_backend.Models
 		[Column("topic")]
 		public string Topic { get; set; }
 		[Column("debate_mode")]
-		public DebateMode DebateMode { get; set; } = DebateMode.Voice;
+		[JsonConverter(typeof(StringEnumConverter))]
+		public DebateMode DebateMode { get; set; }
 	}
 }

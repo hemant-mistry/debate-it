@@ -2,7 +2,7 @@
 {
 	public enum DebateMode
 	{
-		Voice,
-		Text
+		Text,
+		Voice
 	}
 }
