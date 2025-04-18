@@ -2,6 +2,7 @@
 using Supabase;
 using debate_it_backend.Services;
 using debate_it_backend.Hub;
+using debate_it_backend.Hub.DebateHandlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,12 @@ builder.Services.AddCors(options =>
 	});
 });
 
+// New services
+builder.Services.AddSingleton<ConnectionMapping<string>>();
+builder.Services.AddSingleton<GeminiService>();
+builder.Services.AddScoped<VoiceDebateHandler>();
+builder.Services.AddScoped<TextDebateHandler>();
+builder.Services.AddScoped<DebateHandlerFactory>();
 
 builder.Services.AddScoped<RoomService>();
 

@@ -1,5 +1,7 @@
 ﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace debate_it_backend.Models
 {
@@ -14,5 +16,8 @@ namespace debate_it_backend.Models
 		public DateTime CreatedAt { get; set; }
 		[Column("topic")]
 		public string Topic { get; set; }
+		[Column("debate_mode")]
+		[JsonConverter(typeof(StringEnumConverter))]
+		public DebateMode DebateMode { get; set; }
 	}
 }

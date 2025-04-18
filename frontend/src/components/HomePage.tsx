@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { setUsers } from "../redux/slices/roomSlice";
 import { UserDetails } from "../types/User";
 import Guide from "./ui/Guide";
+import { DebateModes } from "../constants/debateMode";
 
 interface HomePageProps {
   signalRConnection: signalR.HubConnection | null;
@@ -14,6 +15,9 @@ function HomePage({ signalRConnection }: HomePageProps) {
   const [playerName, setPlayerName] = useState("");
   const [roomKey, setRoomKey] = useState("");
   const [topic, setTopic] = useState("");
+  type DebateModeType = typeof DebateModes[keyof typeof DebateModes];
+  const [mode, setMode] = useState<DebateModeType>(DebateModes.TEXT);
+
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -29,7 +33,7 @@ function HomePage({ signalRConnection }: HomePageProps) {
   }, [signalRConnection, dispatch]);
 
   const handleJoinRoom = async () => {
-    if(!playerName || !roomKey){
+    if (!playerName || !roomKey) {
       alert("Please enter both your name and the room key");
       return;
     }
@@ -44,21 +48,28 @@ function HomePage({ signalRConnection }: HomePageProps) {
           body: JSON.stringify({ playerName, roomKey }),
         }
       );
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to join room.");
       }
-  
+
       if (signalRConnection) {
         try {
-          await signalRConnection.invoke("JoinRoom", roomKey, userEmail, playerName);
+          await signalRConnection.invoke(
+            "JoinRoom",
+            roomKey,
+            userEmail,
+            playerName
+          );
           console.log("Joined room successfully");
           navigate(`/hub/${roomKey}`);
         } catch (err) {
           console.error("JoinRoom failed: ", err);
           if (err instanceof Error) {
-            alert(err.message || "Error while joining the room. Please try again.");
+            alert(
+              err.message || "Error while joining the room. Please try again."
+            );
           } else {
             alert("Error while joining the room. Please try again.");
           }
@@ -75,14 +86,16 @@ function HomePage({ signalRConnection }: HomePageProps) {
       }
     }
   };
-  
-  
 
   const handleCreateRoom = async () => {
-    if(!playerName || !topic){
+    if (!playerName || !topic) {
       alert("Please enter both your name and the topic");
       return;
     }
+
+    console.log("Sending mode:", mode, "Type:", typeof mode);
+
+
     const response = await fetch(
       `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/create-room`,
       {
@@ -90,7 +103,7 @@ function HomePage({ signalRConnection }: HomePageProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ playerName, topic }),
+        body: JSON.stringify({ playerName, topic, mode }),
       }
     );
 
@@ -114,25 +127,27 @@ function HomePage({ signalRConnection }: HomePageProps) {
 
   return (
     <>
-
       <div className="flex justify-center items-center">
-
         <div className="card flex items-center bg-black shadow-xl p-4 justify-center w-[300px] mt-[100px] md:mt-[70px]">
-        <div className="badge bg-[#03C988] text-black mb-2 font-[600] badge-md p-3">Beta release</div>
+          <div className="badge bg-[#03C988] text-black mb-2 font-[600] badge-md p-3">
+            Beta release
+          </div>
           <div className="main-header text-4xl text-center">
             <i>Debate</i> it
           </div>
           <div className="flex-row card-body">
             <button
-              className={`btn ${isJoinRoom ? "btn-ghost" : "btn-secondary"
-                } btn-xs`}
+              className={`btn ${
+                isJoinRoom ? "btn-ghost" : "btn-secondary"
+              } btn-xs`}
               onClick={() => setIsJoinRoom(false)}
             >
               Create Room
             </button>
             <button
-              className={`btn ${isJoinRoom ? "btn-secondary" : "btn-ghost"
-                } btn-xs`}
+              className={`btn ${
+                isJoinRoom ? "btn-secondary" : "btn-ghost"
+              } btn-xs`}
               onClick={() => setIsJoinRoom(true)}
             >
               Join Room
@@ -158,12 +173,15 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 onChange={(e) => setRoomKey(e.target.value)}
                 className="input input-bordered input-sm"
               />
-              <button className="btn btn-primary btn-sm" onClick={handleJoinRoom}>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleJoinRoom}
+              >
                 Join Room
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <div className="label">
                 <span className="label-text">Enter your name:</span>
               </div>
@@ -183,14 +201,58 @@ function HomePage({ signalRConnection }: HomePageProps) {
                 onChange={(e) => setTopic(e.target.value)}
                 className="input input-bordered input-sm"
               />
-              <button className="btn btn-primary btn-sm" onClick={handleCreateRoom}>
+              <div
+                role="tablist"
+                className="flex items-center gap-x-2 tabs-sm mt-2 mb-2"
+              >
+                <div className="label flex-shrink-0">
+                  <span className="label-text text-sm font-medium">
+                    Select mode:
+                  </span>
+                </div>
+                <div className="tooltip" data-tip="Debate via text">
+                  <label className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="mode"
+                      value="TEXT"
+                      className="hidden peer"
+                      checked={mode === "Text"}
+                      onChange={() => setMode(DebateModes.TEXT)}
+
+                    />
+                    <div className="tab rounded-lg text-white font-medium peer-checked:bg-[#FFA500] peer-checked:text-black">
+                      Text
+                    </div>
+                  </label>
+                </div>
+                <div className="tooltip" data-tip="Debate via voice">
+                  <label className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="mode"
+                      value="VOICE"
+                      className="hidden peer"
+                      checked={mode === "Voice"}
+                      onChange={() => setMode(DebateModes.VOICE)}
+                    />
+                    <div className="tab rounded-lg text-white font-medium peer-checked:bg-[#FFA500] peer-checked:text-black">
+                      Voice
+                    </div>
+                  </label>
+                </div>
+              </div>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleCreateRoom}
+              >
                 Create Room
               </button>
             </div>
           )}
         </div>
       </div>
-      <Guide/>
+      <Guide />
     </>
   );
 }
