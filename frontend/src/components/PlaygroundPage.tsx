@@ -276,6 +276,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
 
     handleRoundRobin();
+    setText("");
 
   }
 
@@ -284,7 +285,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     const sortedScores = [...scores].sort((a, b) => b.Score - a.Score);
 
     return (
-      <div className="flex flex-col max-w-sm items-center mx-auto justify-center mt-[150px]">
+      <div className="flex flex-col max-w-sm items-center mx-auto justify-center mt-[100px]">
         <ul className="list bg-base-100 rounded-box shadow-md">
           <li className="p-4 pb-3 text-4xl opacity-60 tracking-wide">
             Leaderboard

@@ -1,4 +1,4 @@
-import { RefObject } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 
 interface ThreadItem {
   userEmail: string;
@@ -40,15 +40,55 @@ function TextDebate({
   notification,
   userEmail,
   handleTextSendButton,
-  setText
+  setText,
 }: TextDebateProps) {
+  const [rows, setRows] = useState(1);
+
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const maxHeightRef = useRef<number | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setText(val);
+
+
+    const lineBreaks = val.split("\n").length;
+
+    setRows(Math.min(Math.max(lineBreaks, 1), 3));
+  };
+
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+
+
+    if (rows < 1) {
+      maxHeightRef.current = null;
+      ta.style.overflowY = "hidden";
+
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    } else {
+
+      if (maxHeightRef.current === null) {
+
+        ta.style.height = "auto";
+        maxHeightRef.current = ta.scrollHeight;
+      }
+
+      ta.style.height = maxHeightRef.current + "px";
+      ta.style.overflowY = "auto";
+    }
+  }, [text, rows]);
+
   return (
-    <div className="game-container flex flex-col justify-center items-center pt-10">
+    <div className="game-container flex flex-col justify-center items-center mt-5">
       <div className="debate-topic text-xl w-full max-w-md md:max-w-[700px] text-center">
         <p className="text-sm">Topic:</p>
         <p className="mt-2">{debateTopic}</p>
         <div
-          className="text-left mt-5 text-sm h-[300px] overflow-y-auto md:mt-[50px]"
+          className="text-left text-sm h-[300px] overflow-y-auto mt-5"
           ref={threadContainerRef}
         >
           <ul className="mb-5">
@@ -67,36 +107,53 @@ function TextDebate({
       >
         {text}
       </div>
-      <div className="game-action-container flex flex-col w-full mt-10 justify-between items-center max-w-sm md:max-w-[700px] md:flex-row">
-        <div className="flex-shrink-0">
-          <div className="speaker-info flex flex-row items-center bg-primary p-1.5 font-[600] rounded-md text-black">
+      <div
+        className="
+    game-action-container
+    flex flex-col
+    w-full
+    items-center
+    max-w-sm md:max-w-[700px]
+    space-y-4
+    mt-5
+  "
+      >
+
+        <div className="flex-shrink-0 self-start">
+          <div className="speaker-info flex items-center bg-primary p-1.5 font-[600] rounded-md text-black">
             <p className="text-sm">Speaker : {speaker || "None"}</p>
           </div>
-          <div className="text-white mb-5 text-center md:text-left">
-            {notification && userEmail === notification.userEmail && (
-              <p className="text-sm mt-4 text-white">
-                Turns left: {notification.turnsLeft}
-              </p>
-            )}
-          </div>
+          {notification && userEmail === notification.userEmail && (
+            <p className="text-sm mt-2 text-white">
+              Turns left: {notification.turnsLeft}
+            </p>
+          )}
         </div>
 
+
         {userEmail === speaker && (
-          <div className="speaker-container flex flex-row items-center">
+          <div className="speaker-container flex items-end w-full space-x-2">
             <textarea
-              className="textarea textarea-bordered w-full"
+              ref={textareaRef}
+              className="textarea textarea-bordered w-full resize-none overflow-hidden"
               placeholder="Type your argument..."
               value={text}
-              onChange={(e) => setText(e.target.value)} // 👈 Update parent state
+              rows={rows}
+              onChange={handleChange}
             />
-            <button className="btn btn-primary" onClick={handleTextSendButton}>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                handleTextSendButton();
+                setText("");
+                setRows(1);
+              }}
+            >
               Send
             </button>
           </div>
         )}
       </div>
-
-      <br />
     </div>
   );
 }
