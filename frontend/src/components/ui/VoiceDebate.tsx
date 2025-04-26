@@ -32,6 +32,7 @@ interface VoiceDebateProps {
   buzzerLocked: boolean;
   handleBuzzerClick: () => void;
   finishSpeaking: () => void;
+  getUserName: (email: string) => string;
 }
 
 const defaultOptions = {
@@ -54,7 +55,8 @@ function VoiceDebate({
   userEmail,
   buzzerLocked,
   handleBuzzerClick,
-  finishSpeaking
+  finishSpeaking,
+  getUserName
 }: VoiceDebateProps) {
   return (
     <div className="game-container flex flex-col justify-center items-center pt-10">
@@ -68,7 +70,7 @@ function VoiceDebate({
           <ul className="mb-5">
             {thread.map((item, index) => (
               <li className="mt-2" key={index}>
-                <span className="mr-2 text-white">{item.userEmail}:</span>
+                <span className="mr-2 text-white">{getUserName(item.userEmail)}:</span>
                 {item.debateTranscript}
               </li>
             ))}

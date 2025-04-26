@@ -281,6 +281,12 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
 
   }
 
+
+  const getUserName = (email: string): string => {
+    const user = users.find(u => u?.userEmail === email);
+    return user?.inferredName || email; // Fall back to email if name not found
+  };
+
   if (isGameOver) {
     // Sort descending
     const sortedScores = [...scores].sort((a, b) => b.Score - a.Score);
@@ -300,7 +306,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
               className="collapse collapse-arrow border-b last:border-b-0 border-gray-200"
             >
               <div className="collapse-title flex justify-between items-center p-4 pr-10">
-                <span className="font-medium text-sm sm:text-base truncate">{score.UserEmail}</span>
+                <span className="font-medium text-sm sm:text-base truncate">{getUserName(score.UserEmail)}</span>
                 <span className="text-xl sm:text-2xl font-bold">{score.Score}</span>
               </div>
               <div className="collapse-content">
@@ -335,6 +341,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
           buzzerLocked={buzzerLocked}
           handleBuzzerClick={handleBuzzerClick}
           finishSpeaking={finishSpeaking}
+          getUserName={getUserName}
         />
       ) : isGameStarted && mode == DebateModes.TEXT ? (
         <TextDebate
@@ -348,6 +355,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
           userEmail={userEmail || ""}
           handleTextSendButton = {handleTextSendButton}
           setText={setText}
+          getUserName={getUserName}
         />
       ) : (
         <div className="scenario flex flex-col justify-center items-center mt-36">
