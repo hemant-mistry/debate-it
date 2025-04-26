@@ -47,13 +47,8 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [buzzerLocked, setBuzzerLocked] = useState<boolean>(false);
   const [debateTopic, setDebateTopic] = useState<string>();
   const [text, setText] = useState<string>();
-  const [isGameOver, setIsGameOver] = useState<boolean>(true);
-  const [scores] = useState<ScoreEntry[]>([
-    { UserEmail: 'alice@example.com', Score: 12, Reason: 'Used strong arguments and remained calm under pressure.' },
-    { UserEmail: 'bob@example.com', Score: 9, Reason: 'Presented valid counterpoints and stayed concise.' },
-    { UserEmail: 'charlie@example.com', Score: 7, Reason: 'Used relevant examples effectively.' },
-    { UserEmail: 'diana@example.com', Score: 5, Reason: 'Good participation and structure in arguments.' },
-  ]);
+  const [isGameOver, setIsGameOver] = useState<boolean>(false);
+  const [scores, setScores] = useState<ScoreEntry[]>([]);
   const [notification, setNotification] = useState<Notification>();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
@@ -97,17 +92,17 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         setTextSpeaker(userEmail);
       });
 
-      // signalRConnection.on("SendDebateScores", (debateScores: string) => {
-      //   console.log("Received debateScores:", debateScores);
-      //   setIsGameOver(true);
-      //   try {
-      //     // Parse the JSON string into an array of score entries
-      //     const parsedScores: ScoreEntry[] = JSON.parse(debateScores);
-      //     setScores(parsedScores);
-      //   } catch (error) {
-      //     console.error("Error parsing debate scores:", error);
-      //   }
-      // });
+      signalRConnection.on("SendDebateScores", (debateScores: string) => {
+        console.log("Received debateScores:", debateScores);
+        setIsGameOver(true);
+        try {
+          // Parse the JSON string into an array of score entries
+          const parsedScores: ScoreEntry[] = JSON.parse(debateScores);
+          setScores(parsedScores);
+        } catch (error) {
+          console.error("Error parsing debate scores:", error);
+        }
+      });
 
       signalRConnection.on("SavedTranscript", (notification: Notification) => {
         console.log(notification);
