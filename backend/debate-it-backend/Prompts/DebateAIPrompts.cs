@@ -21,11 +21,13 @@ public class Prompts
         ### OUTPUT FORMAT ###
         {
             ""UserEmail"": ""sample@gmail.com"",
-            ""Score"": 15
+            ""Score"": 15,
+            ""Reason"": ""Used strong arguments and remained calm under pressure.""
         },
         {
             ""UserEmail"": ""apple@gmail.com"",
-            ""Score"": 50
+            ""Score"": 50,
+            ""Reason"":""Good participation and structure in arguments.""
         } 
 
     ";

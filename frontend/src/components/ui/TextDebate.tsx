@@ -28,6 +28,8 @@ interface TextDebateProps {
   userEmail: string;
   handleTextSendButton: () => void;
   setText: (text: string) => void;
+  getUserName: (email: string) => string;
+
 }
 
 function TextDebate({
@@ -41,6 +43,7 @@ function TextDebate({
   userEmail,
   handleTextSendButton,
   setText,
+  getUserName,
 }: TextDebateProps) {
   const [rows, setRows] = useState(1);
 
@@ -94,7 +97,7 @@ function TextDebate({
           <ul className="mb-5">
             {thread.map((item, index) => (
               <li className="mt-2" key={index}>
-                <span className="mr-2 text-white">{item.userEmail}:</span>
+                <span className="mr-2 text-white">{getUserName(item.userEmail)}:</span>
                 {item.debateTranscript}
               </li>
             ))}

@@ -29,6 +29,7 @@ interface DebateEntry {
 interface ScoreEntry {
   UserEmail: string;
   Score: number;
+  Reason: string;
 }
 
 type DebateModeType = typeof DebateModes[keyof typeof DebateModes];
@@ -280,35 +281,50 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
 
   }
 
+
+  const getUserName = (email: string): string => {
+    const user = users.find(u => u?.userEmail === email);
+    return user?.inferredName || email; // Fall back to email if name not found
+  };
+
   if (isGameOver) {
-    // Create a sorted copy of scores in descending order by Score
+    // Sort descending
     const sortedScores = [...scores].sort((a, b) => b.Score - a.Score);
 
     return (
-      <div className="flex flex-col max-w-sm items-center mx-auto justify-center mt-[100px]">
-        <ul className="list bg-base-100 rounded-box shadow-md">
-          <li className="p-4 pb-3 text-4xl opacity-60 tracking-wide">
-            Leaderboard
-          </li>
+      <div className="flex flex-col w-full max-w-md mx-auto mt-12 px-4 sm:px-0">
+        <h2 className="text-3xl sm:text-4xl font-semibold mb-2 text-center">Leaderboard</h2>
+        {/* Info text to guide users */}
+        <p className="text-center text-sm sm:text-base text-gray-500 mb-4">
+          Click the arrow next to each name to view why they won the debate.
+        </p>
+        <div className="bg-base-100 rounded-box shadow-md overflow-hidden">
           {sortedScores.map((score, index) => (
-            <li
+            <div
               key={index}
-              className="list-row flex flex-row gap-5 items-center justify-between pb-3 border-b border-gray-200 mt-5 mb-5"
+              tabIndex={0}
+              className="collapse collapse-arrow border-b last:border-b-0 border-gray-200"
             >
-              <div className="list-col-grow">
-                <div>{score.UserEmail}</div>
+              <div className="collapse-title flex justify-between items-center p-4 pr-10">
+                <span className="font-medium text-sm sm:text-base truncate">{getUserName(score.UserEmail)}</span>
+                <span className="text-xl sm:text-2xl font-bold">{score.Score}</span>
               </div>
-              <div className="scores text-2xl">{score.Score}</div>
-            </li>
+              <div className="collapse-content">
+                <p className="text-sm sm:text-base text-[#FFA500]">{score.Reason}</p>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
 
-        <button className="btn btn-primary btn-sm" onClick={handlePlayAgain}>
-          Play Again
-        </button>
+        <div className="flex justify-center mt-6">
+          <button className="btn btn-primary w-full sm:w-auto" onClick={handlePlayAgain}>
+            Play Again
+          </button>
+        </div>
       </div>
     );
   }
+
 
   return (
     <div className="container mx-auto px-10 md:mt-10">
@@ -325,6 +341,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
           buzzerLocked={buzzerLocked}
           handleBuzzerClick={handleBuzzerClick}
           finishSpeaking={finishSpeaking}
+          getUserName={getUserName}
         />
       ) : isGameStarted && mode == DebateModes.TEXT ? (
         <TextDebate
@@ -338,6 +355,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
           userEmail={userEmail || ""}
           handleTextSendButton = {handleTextSendButton}
           setText={setText}
+          getUserName={getUserName}
         />
       ) : (
         <div className="scenario flex flex-col justify-center items-center mt-36">
