@@ -16,7 +16,7 @@ interface PlaygroundPageProps {
 interface Notification {
   userEmail: string;
   debateEntries: DebateEntry[];
-  turnsLeft: Int16Array;
+  turnsLeft: number;
 }
 
 interface DebateEntry {

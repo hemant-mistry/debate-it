@@ -11,7 +11,7 @@ interface ThreadItem {
 interface Notification {
     userEmail: string;
     debateEntries: DebateEntry[];
-    turnsLeft: Int16Array;
+    turnsLeft: number;
 }
 
 interface DebateEntry {
@@ -113,7 +113,11 @@ function VoiceDebate({
             <button
               className="btn btn-primary hover:bg-primary disabled:bg-primary disabled:text-black disabled:opacity-100 disabled:cursor-not-allowed text-black"
               onClick={handleBuzzerClick}
-              disabled={buzzerLocked}
+             disabled={
+              buzzerLocked ||
+              (notification?.userEmail === userEmail &&
+                notification.turnsLeft === 0)
+            } 
             >
               <img src={BuzzerIcon} className="w-5" alt="Buzzer Icon" />
               <p className="text-sm">Buzzer</p>

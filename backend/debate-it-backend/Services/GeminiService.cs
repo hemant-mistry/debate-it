@@ -43,7 +43,7 @@ namespace debate_it_backend.Services
 
 		public async Task<string> AnalyzeDebate(List<GeminiInputFormat> debates, int maxRetries = 3)
 		{
-			var apiKey = _apiKey;
+			var apiKey = "AIzaSyA7JlpBiHQ0cPpaGv_1ybcSSigYryVOmDw";
 			// Convert debate entries to a structured format
 			string debateText = string.Join("\n", debates.Select(d => $"{d.UserEmail}: {d.Transcript}"));
 			// System instruction with proper newline formatting
@@ -53,12 +53,12 @@ namespace debate_it_backend.Services
 
 			// Expected JSON structure for strict validation
 			string expectedFormat = @"[
-      {
-        ""UserEmail"": ""example@example.com"",
-        ""Score"": 30,
-        ""Reason"": ""Explanation text""
-      }
-    ]";
+				{
+				""UserEmail"": ""example@example.com"",
+				""Score"": 30,
+				""Reason"": ""Explanation text""
+				}
+			]";
 
 			// Create the request using the debate content
 			var request = new GenerateContentRequest(debateText);

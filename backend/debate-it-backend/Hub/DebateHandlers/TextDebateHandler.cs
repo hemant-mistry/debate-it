@@ -122,20 +122,38 @@ namespace debate_it_backend.Hub.DebateHandlers
 			await clients.Group(roomKey).SendCurrentUser(EmailRoundRobin(roomKey, userEmails));
 		}
 
-		public string EmailRoundRobin(string roomKey,List<string> emails)
+		public string EmailRoundRobin(string roomKey, List<string> emails)
 		{
-			
-			if(emails == null || emails.Count == 0)
+			if (emails == null || emails.Count == 0)
 			{
 				throw new ArgumentException("There are no people in the room");
 			}
 
-			var index = _roomRoundRobinIndex.GetOrAdd(roomKey, -1);
-			index = (index+1)%emails.Count;
-			_roomRoundRobinIndex[roomKey] = index;
+			// Fetch debate entries for the room
+			var entries = _debateRecords.GetOrAdd(roomKey, _ => new List<DebateEntry>());
 
-			return emails[index];
+			// Count turns per user
+			var userTurnCounts = emails.ToDictionary(
+				email => email,
+				email => entries.Count(e => e.UserEmail == email)
+			);
 
+			// Get current index (default to -1)
+			var currentIndex = _roomRoundRobinIndex.GetOrAdd(roomKey, -1);
+
+			// Try to find the next eligible user (less than 5 turns)
+			for (int i = 1; i <= emails.Count; i++)
+			{
+				int nextIndex = (currentIndex + i) % emails.Count;
+				string candidateEmail = emails[nextIndex];
+
+				if (userTurnCounts[candidateEmail] < 5)
+				{
+					_roomRoundRobinIndex[roomKey] = nextIndex;
+					return candidateEmail;
+				}
+			}
+			throw new InvalidOperationException("All users have completed their turns.");
 		}
 	}
 }
