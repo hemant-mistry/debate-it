@@ -408,14 +408,6 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
               </button>
             </li>
           </ul>
-          {isAllPlayerReady && (
-            <button
-              className="btn btn-primary btn-sm mt-10"
-              onClick={handleStart}
-            >
-              Start
-            </button>
-          )}
         </div>
       )}
     </div>
