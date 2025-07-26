@@ -16,7 +16,7 @@ namespace debate_it_backend.Services
 
 		public async Task<string> GenerateDebateTopic(string topic)
 		{
-			var apiKey = "AIzaSyBSj1qGt8ig6YO8CIiD7ki81TyEGpiHj1k";
+			var apiKey = "AIzaSyA7JlpBiHQ0cPpaGv_1ybcSSigYryVOmDw";
 			// System instruction with correct newline syntax
 			var systemInstruction = new Content($"{Prompts.Prompts.GENERATE_DEBATE_STATEMENTS}");
 
@@ -43,7 +43,7 @@ namespace debate_it_backend.Services
 
 		public async Task<string> AnalyzeDebate(List<GeminiInputFormat> debates, int maxRetries = 3)
 		{
-			var apiKey = "AIzaSyA7JlpBiHQ0cPpaGv_1ybcSSigYryVOmDw";
+			var apiKey = "AIzaSyCTpjgeGXIPnIoe4kc6UFeyDpOtG1kKddA";
 			// Convert debate entries to a structured format
 			string debateText = string.Join("\n", debates.Select(d => $"{d.UserEmail}: {d.Transcript}"));
 			// System instruction with proper newline formatting
