@@ -16,7 +16,7 @@ namespace debate_it_backend.Services
 
 		public async Task<string> GenerateDebateTopic(string topic)
 		{
-			var apiKey = "AIzaSyCbzdC1Cy5PKkJfoqdv1QTYhSIn6TdBEN4";
+			var apiKey = "AIzaSyBSj1qGt8ig6YO8CIiD7ki81TyEGpiHj1k";
 			// System instruction with correct newline syntax
 			var systemInstruction = new Content($"{Prompts.Prompts.GENERATE_DEBATE_STATEMENTS}");
 
