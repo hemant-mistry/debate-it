@@ -11,7 +11,7 @@ namespace debate_it_backend.Services
 		private readonly string _apiKey;
 		public GeminiService(IConfiguration configuration)
 		{
-			_apiKey = "AIzaSyCbzdC1Cy5PKkJfoqdv1QTYhSIn6TdBEN4";
+			_apiKey = "AIzaSyBSj1qGt8ig6YO8CIiD7ki81TyEGpiHj1k";
 		}
 
 		public async Task<string> GenerateDebateTopic(string topic)
