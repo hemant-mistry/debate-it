@@ -9,20 +9,16 @@ namespace debate_it_backend.Services
 	public class GeminiService
 	{
 		private readonly string _apiKey;
-		public GeminiService(IConfiguration configuration)
-		{
-			_apiKey = "AIzaSyBSj1qGt8ig6YO8CIiD7ki81TyEGpiHj1k";
-		}
 
 		public async Task<string> GenerateDebateTopic(string topic)
 		{
-			var apiKey = "AIzaSyA7JlpBiHQ0cPpaGv_1ybcSSigYryVOmDw";
+			var apiKey = "AIzaSyCsOhcjnS27yJsB9Po41nmKiOA-Zay2JCs";
 			// System instruction with correct newline syntax
 			var systemInstruction = new Content($"{Prompts.Prompts.GENERATE_DEBATE_STATEMENTS}");
 
 
 			IGenerativeAI genAi = new GoogleAI(apiKey);
-			var model = genAi.GenerativeModel(Model.Gemini15ProLatest, systemInstruction: systemInstruction);
+			var model = genAi.GenerativeModel(Model.Gemini20Flash, systemInstruction: systemInstruction);
 
 			// Properly format the request with debate content
 			var request = new GenerateContentRequest(topic);
@@ -43,7 +39,7 @@ namespace debate_it_backend.Services
 
 		public async Task<string> AnalyzeDebate(List<GeminiInputFormat> debates, int maxRetries = 3)
 		{
-			var apiKey = "AIzaSyCTpjgeGXIPnIoe4kc6UFeyDpOtG1kKddA";
+			var apiKey = "AIzaSyDQnHEm7EikjDTfIgmkHdGeQqc3W3DN9h8";
 			// Convert debate entries to a structured format
 			string debateText = string.Join("\n", debates.Select(d => $"{d.UserEmail}: {d.Transcript}"));
 			// System instruction with proper newline formatting
