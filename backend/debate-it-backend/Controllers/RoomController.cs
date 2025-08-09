@@ -114,6 +114,26 @@ namespace debate_it_backend.Controllers
 			}
 		}
 
+		[HttpGet]
+		[Route("players/{roomKey}")]
+		public async Task<IActionResult> GetPlayersInRoom(string roomKey)
+		{
+			try
+			{
+				var players = await _roomService.GetPlayersInRoomAsync(roomKey);
+				if (players != null && players.Count > 0)
+				{
+					return Ok(players);
+				}
+
+				return NotFound($"No players found in room {roomKey}.");
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, $"Internal server error: {ex.Message}");
+			}
+		}
+
 
 	}
 }

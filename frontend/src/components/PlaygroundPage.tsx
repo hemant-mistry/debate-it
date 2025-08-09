@@ -34,7 +34,6 @@ interface ScoreEntry {
 
 type DebateModeType = typeof DebateModes[keyof typeof DebateModes];
 
-
 function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const navigate = useNavigate();
   const { roomKey } = useParams<{ roomKey: string }>();
@@ -69,10 +68,10 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         "SendDebateTopicwithMode",
         (response: string, mode: number) => {
           setIsGameStarted(true);
-          
+
           const modeValue = mode === 0 ? DebateModes.TEXT : DebateModes.VOICE;
           setMode(modeValue);
-          
+
           console.log("The selected mode is", modeValue);
           setDebateTopic(response);
         }
@@ -293,12 +292,12 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
 
     return (
       <div className="flex flex-col w-full max-w-md mx-auto mt-12 px-4 sm:px-0">
-        <h2 className="text-3xl sm:text-4xl font-semibold mb-2 text-center">Leaderboard</h2>
+        <h2 className="text-3xl sm:text-4xl font-semibold mb-2 text-center text-neutral">Leaderboard</h2>
         {/* Info text to guide users */}
         <p className="text-center text-sm sm:text-base text-gray-500 mb-4">
           Click the arrow next to each name to view why they won the debate.
         </p>
-        <div className="bg-base-100 rounded-box shadow-md overflow-hidden">
+        <div className="bg-white rounded-box shadow-md overflow-hidden">
           {sortedScores.map((score, index) => (
             <div
               key={index}
@@ -306,10 +305,10 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
               className="collapse collapse-arrow border-b last:border-b-0 border-gray-200"
             >
               <div className="collapse-title flex justify-between items-center p-4 pr-10">
-                <span className="font-medium text-sm sm:text-base truncate">{getUserName(score.UserEmail)}</span>
-                <span className="text-xl sm:text-2xl font-bold">{score.Score}</span>
+                <span className="font-medium text-sm sm:text-base truncate text-neutral">{getUserName(score.UserEmail)}</span>
+                <span className="text-xl sm:text-2xl font-bold text-neutral">{score.Score}</span>
               </div>
-              <div className="collapse-content">
+              <div className="collapse-content bg-base-100 px-4 pb-4">
                 <p className="text-sm sm:text-base text-[#FFA500]">{score.Reason}</p>
               </div>
             </div>
@@ -325,9 +324,8 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     );
   }
 
-
   return (
-    <div className="container mx-auto px-10 md:mt-10">
+    <div className="container mx-auto px-4 md:px-10 ">
       {isGameStarted && mode == DebateModes.VOICE ? (
         <VoiceDebate
           debateTopic={debateTopic || ""}
@@ -345,34 +343,32 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         />
       ) : isGameStarted && mode == DebateModes.TEXT ? (
         <TextDebate
-          debateTopic={debateTopic || ""}
-          threadContainerRef={threadContainerRef}
-          thread={thread}
-          transcriptScrollRef={transcriptScrollRef}
-          text={text || ""}
-          speaker={textSpeaker}
-          notification={notification || null}
-          userEmail={userEmail || ""}
-          handleTextSendButton = {handleTextSendButton}
-          setText={setText}
-          getUserName={getUserName}
-        />
+            debateTopic={debateTopic || ""}
+            threadContainerRef={threadContainerRef}
+            thread={thread}
+            text={text || ""}
+            speaker={textSpeaker}
+            notification={notification || null}
+            userEmail={userEmail || ""}
+            handleTextSendButton={handleTextSendButton}
+            setText={setText}
+            getUserName={getUserName}   />
       ) : (
-        <div className="scenario flex flex-col justify-center items-center mt-36">
-          <div className="room-code-container">
+        <div className="scenario flex flex-col justify-center items-center py-12">
+          <div className="room-code-container w-full max-w-md px-4">
             {isAllPlayerReady ? (
-              <div className="text-2xl mb-5 text-white">
-                Starting in {countdown}..
+              <div className="text-2xl mb-5 text-neutral text-center">
+                Starting in <span className="font-semibold text-primary">{countdown}</span>..
               </div>
             ) : (
-              <div className="text-2xl mb-5 flex flex-row items-center gap-2">
-                Room code:{" "}
-                <span className="font-[600] text-white">{roomKey}</span>
+              <div className="text-2xl mb-5 flex flex-row items-center gap-2 justify-center text-neutral">
+                <span>Room code:</span>
+                <span className="font-semibold text-primary">{roomKey}</span>
                 <div className="flex tooltip" data-tip={tooltipText}>
-                  <button className="btn btn-xs w-[45px]" onClick={handleCopy}>
+                  <button className="btn btn-ghost btn-xs ml-2" onClick={handleCopy} aria-label="Copy room code">
                     <img
                       src={CopyToClipboard}
-                      className="w-10"
+                      className="w-5 h-5"
                       alt="Copy Icon"
                     />
                   </button>
@@ -380,20 +376,21 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
               </div>
             )}
           </div>
-          <ul className="list bg-base-100 rounded-box shadow-md w-full max-w-md md:max-w-lg">
-            <li className="p-4 pb-2 text-xs opacity-60 tracking-wide">
+
+          <ul className="bg-white rounded-box shadow-md w-full max-w-md md:max-w-lg">
+            <li className="p-4 pb-2 text-sm text-neutral opacity-70 tracking-wide">
               Players in Room
             </li>
             {users.map((user) =>
               user ? (
                 <li
                   key={user.userEmail}
-                  className="list-row p-4 gap-x-4 flex justify-between items-center border-b border-gray-200 last:border-b-0"
+                  className="flex justify-between items-center p-4 gap-x-4 border-b border-gray-200 last:border-b-0"
                 >
-                  <div className="text-lg font-semibold">
+                  <div className="text-lg font-semibold text-neutral">
                     {user.inferredName}
                   </div>
-                  <div style={{ color: user.isReady ? "#03C988" : "#E94560" }}>
+                  <div className={`${user.isReady ? "text-success" : "text-error"} font-medium`}>
                     {user.isReady ? "Ready" : "Not Ready"}
                   </div>
                 </li>
@@ -401,7 +398,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
             )}
             <li className="p-4 flex justify-center items-center">
               <button
-                className="btn btn-primary btn-sm w-[150px] mt-5"
+                className="btn btn-primary btn-sm w-36"
                 onClick={handleReadyStatus}
               >
                 {isPlayerReady ? "Not ready" : "Ready"}
