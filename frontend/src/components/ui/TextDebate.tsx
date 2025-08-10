@@ -31,12 +31,12 @@ interface TextDebateProps {
   threadContainerRef: RefObject<HTMLDivElement>;
   thread: ThreadItem[];
   text: string;
-  speaker: string;
+  speaker: string; // speaker is the user identifier (email or id) coming from server
   notification: Notification | null;
   userEmail: string;
   handleTextSendButton: () => void;
   setText: (text: string) => void;
-  getUserName: (email: string) => string;
+  getUserName: (email: string) => string; // returns display name for an email/id
 }
 
 function TextDebate({
@@ -57,16 +57,19 @@ function TextDebate({
   const [players, setPlayers] = useState<Player[]>([]);
   const { roomKey } = useParams<{ roomKey: string }>();
 
+  // Fetch players API (configurable via env)
   useEffect(() => {
     if (!roomKey) return;
 
+    let mounted = true;
     const fetchPlayers = async () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/players/${roomKey}`
         );
+        if (!res.ok) throw new Error("Failed to fetch players");
         const data = await res.json();
-        setPlayers(data);
+        if (mounted) setPlayers(data);
       } catch (err) {
         console.error("Error fetching players:", err);
       }
@@ -74,7 +77,10 @@ function TextDebate({
 
     fetchPlayers();
     const interval = setInterval(fetchPlayers, 5000); // refresh every 5s
-    return () => clearInterval(interval);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, [roomKey]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -105,57 +111,93 @@ function TextDebate({
   }, [text, rows]);
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    try {
+      return new Date(dateString).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
   };
 
+  // derive speaker display name for comparing with players list
+  const speakerDisplayName = speaker ? getUserName(speaker) : "";
+
   return (
-    <div className="flex flex-row w-full mt-5 px-4 gap-6">
+    <div className="flex flex-row w-full mt-10 px-4 gap-6">
       {/* Main Debate Section */}
-      <div className="flex-1 flex flex-col items-center">
-        {/* Debate topic */}
-        <div className="w-full max-w-3xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-2xl p-4 shadow-md">
-          <p className="text-xs opacity-80">Topic</p>
-          <p className="mt-1 text-lg font-semibold">{debateTopic}</p>
+      <div className="flex-1 flex flex-col">
+        {/* Topic card (clean, professional) */}
+        <div className="w-full max-w-3xl bg-white border border-gray-200 rounded-2xl p-4 shadow-none">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Topic</p>
+              <p className="mt-1 text-lg font-semibold text-neutral-800">
+                {debateTopic}
+              </p>
+            </div>
+            <div className="text-sm text-gray-500">{roomKey ? `Room: ${roomKey}` : ""}</div>
+          </div>
         </div>
 
         {/* Debate thread */}
         <div
           ref={threadContainerRef}
-          className="mt-4 w-full max-w-3xl h-[300px] overflow-y-auto space-y-2 bg-gray-50 rounded-xl p-4 shadow-inner"
+          className="mt-4 w-full max-w-3xl h-[320px] overflow-y-auto space-y-3 bg-base-100 rounded-xl p-4"
         >
-          <ul className="space-y-1 text-sm">
-            {thread.map((item, index) => (
-              <li key={index}>
-                <span className="font-semibold text-blue-600">
-                  {getUserName(item.userEmail)}:
-                </span>{" "}
-                <span className="text-gray-800">{item.debateTranscript}</span>
-              </li>
-            ))}
+          <ul className="flex flex-col gap-3">
+            {thread.map((item, index) => {
+              const isSpeakerMessage = item.userEmail === speaker;
+              const isOwn = item.userEmail === userEmail;
+              return (
+                <li
+                  key={index}
+                  className={`max-w-full break-words p-3 rounded-lg transition ${
+                    isSpeakerMessage
+                      ? "bg-white border-l-4 border-primary/60"
+                      : isOwn
+                      ? "bg-primary/10"
+                      : "bg-white"
+                  }`}
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="text-sm font-medium text-neutral-800">
+                      {getUserName(item.userEmail)}
+                    </div>
+                    {isSpeakerMessage && (
+                      <div className="text-xs text-primary font-semibold ml-2">Speaking</div>
+                    )}
+                  </div>
+
+                  <div className="mt-1 text-sm text-neutral-700">
+                    {item.debateTranscript}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
-        {/* Speaker info */}
-        <div className="w-full max-w-3xl mt-5">
-          <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg font-semibold inline-block">
-            Speaker: {speaker || "None"}
+        {/* Speaker & turns info */}
+        <div className="w-full max-w-3xl mt-4 flex items-center justify-between">
+          <div>
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-neutral-800">
+              Speaker:
+              <span className="ml-2 font-semibold">{speakerDisplayName || "None"}</span>
+            </span>
+            {notification && userEmail === notification.userEmail && (
+              <span className="ml-3 text-sm text-gray-500">Turns left: {notification.turnsLeft}</span>
+            )}
           </div>
-          {notification && userEmail === notification.userEmail && (
-            <p className="text-sm text-gray-500 mt-1">
-              Turns left: {notification.turnsLeft}
-            </p>
-          )}
         </div>
 
         {/* Input for active speaker */}
         {userEmail === speaker && (
-          <div className="flex items-end gap-2 w-full max-w-3xl mt-4">
+          <div className="flex items-end gap-3 w-full max-w-3xl mt-4">
             <textarea
               ref={textareaRef}
-              className="textarea textarea-bordered w-full resize-none overflow-hidden"
+              className="textarea textarea-bordered w-full resize-none overflow-hidden rounded-lg"
               placeholder="Type your argument..."
               value={text}
               rows={rows}
@@ -176,32 +218,49 @@ function TextDebate({
       </div>
 
       {/* Participants Side Panel */}
-      <div className="w-64 bg-white rounded-xl shadow-lg p-4 flex flex-col">
-        <h2 className="text-lg font-bold mb-4">Participants</h2>
-        <div className="space-y-3 overflow-y-auto">
-          {players.map((player) => (
-            <div
-              key={player.id}
-              className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg shadow-sm"
-            >
-              <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
-                {player.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">{player.name}</p>
-                <p className="text-xs text-gray-500">
-                  Joined {formatTime(player.createdAt)}
-                </p>
-              </div>
-              {player.isAdmin && (
-                <span className="px-2 py-1 bg-yellow-200 text-yellow-800 text-xs rounded-md">
-                  Admin
-                </span>
-              )}
-            </div>
-          ))}
+      <aside className="w-64 bg-white rounded-xl p-4 flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-neutral-800">Participants</h2>
         </div>
-      </div>
+
+        <div className="flex-1 overflow-y-auto space-y-3">
+          {players.map((player) => {
+            const isCurrentSpeaker =
+              player.name && speakerDisplayName && player.name === speakerDisplayName;
+            return (
+              <div
+                key={player.id}
+                className={`flex items-center gap-3 p-2 rounded-lg transition ${
+                  isCurrentSpeaker ? "bg-white" : "hover:bg-gray-50"
+                }`}
+              >
+                {/* avatar (initials) */}
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                    isCurrentSpeaker ? "bg-primary text-white" : "bg-blue-500 text-white"
+                  }`}
+                >
+                  {player.name ? player.name.charAt(0).toUpperCase() : "?"}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="truncate text-sm font-medium text-neutral-800">{player.name}</div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Joined {formatTime(player.createdAt)}</div>
+                </div>
+
+                {/* speaking badge only (no ring/shadow/border) */}
+                {isCurrentSpeaker && (
+                  <div className="ml-2 px-2 py-0.5 rounded-full bg-primary text-white text-xs font-semibold animate-pulse">
+                    Speaking
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </aside>
     </div>
   );
 }
