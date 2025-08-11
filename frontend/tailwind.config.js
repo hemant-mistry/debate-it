@@ -1,31 +1,35 @@
 /** @type {import('tailwindcss').Config} */
 import daisyui from "daisyui";
+
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   daisyui: {
     themes: [
       {
         mytheme: {
-          primary: "#f3f4f6",
+          /* page / surface */
+          "base-100": "#ffffff",   // main page background (light)
 
-          secondary: "#60a5fa",
+          /* primary = main brand/button color */
+          primary: "#2563EB",      // blue-600 (buttons, primary accents)
 
-          accent: "#1e40af",
+          /* secondary = softer accent (used for avatars / highlights) */
+          secondary: "#06B6D4",    // cyan-500 / teal-ish
 
-          neutral: "#111827",
+          /* accent = additional accent for chips, badges, etc. */
+          accent: "#1E40AF",       // indigo-900 (strong contrast accent)
 
-          "base-100": "black",
+          /* neutral = main text / muted headings */
+          neutral: "#374151",      // gray-700 (dark text on white)
 
-          info: "#0000ff",
-
-          success: "#3b82f6",
-
-          warning: "#60a5fa",
-
-          error: "#e0f2fe",
-        },
-      },
-    ],
+          /* UI semantic colors */
+          info: "#3B82F6",         // blue-500
+          success: "#10B981",      // green-500
+          warning: "#F59E0B",      // amber-500
+          error: "#EF4444"         // red-500
+        }
+      }
+    ]
   },
   plugins: [daisyui],
 };

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setUsers } from "../redux/slices/roomSlice";
 import { UserDetails } from "../types/User";
-import Guide from "./ui/Guide";
 import { DebateModes } from "../constants/debateMode";
 
 interface HomePageProps {
@@ -15,9 +14,8 @@ function HomePage({ signalRConnection }: HomePageProps) {
   const [playerName, setPlayerName] = useState("");
   const [roomKey, setRoomKey] = useState("");
   const [topic, setTopic] = useState("");
-  type DebateModeType = typeof DebateModes[keyof typeof DebateModes];
+  type DebateModeType = (typeof DebateModes)[keyof typeof DebateModes];
   const [mode, setMode] = useState<DebateModeType>(DebateModes.TEXT);
-
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -95,7 +93,6 @@ function HomePage({ signalRConnection }: HomePageProps) {
 
     console.log("Sending mode:", mode, "Type:", typeof mode);
 
-
     const response = await fetch(
       `${import.meta.env.VITE_TWIST_IT_BACKEND_URL}/api/rooms/create-room`,
       {
@@ -127,132 +124,203 @@ function HomePage({ signalRConnection }: HomePageProps) {
 
   return (
     <>
-      <div className="flex justify-center items-center">
-        <div className="card flex items-center bg-black shadow-xl p-4 justify-center w-[300px] mt-[100px] md:mt-[70px]">
-          <div className="badge bg-[#03C988] text-black mb-2 font-[600] badge-md p-3">
-            Beta release v2
+      {/* Use items-start + responsive padding-top so we get exact spacing:
+          - md: 50px (md:pt-[50px])
+          - lg: 150px (lg:pt-[150px]) */}
+      <div className="flex items-start justify-center bg-base-100 pt-12 px-4 mt-10">
+        {/* Card (narrow) */}
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
+          {/* Header */}
+          <div className="flex flex-col items-center mb-4">
+            <div className="badge badge-accent text-white px-3 py-1 rounded-full mb-3 text-xs font-medium">
+              Beta release v2
+            </div>
+
+            <h1 className="text-2xl md:text-3xl font-semibold text-center leading-tight text-neutral mb-1">
+              <i>Debate</i> it
+            </h1>
+            <p className="text-sm text-muted text-center mt-1">
+              A lightweight space to create or join a debate room
+            </p>
           </div>
-          <div className="main-header text-4xl text-center">
-            <i>Debate</i> it
-          </div>
-          <div className="flex-row card-body">
-            <button
-              className={`btn ${
-                isJoinRoom ? "btn-ghost" : "btn-secondary"
-              } btn-xs`}
-              onClick={() => setIsJoinRoom(false)}
+
+          {/* Create / Join segmented control (with sliding indicator) */}
+          <div className="flex justify-center mb-5">
+            <div
+              role="tablist"
+              aria-label="Create or join room"
+              className="relative inline-flex items-center bg-white border border-gray-200 rounded-full p-1 w-64"
+              style={{ height: 36 }}
             >
-              Create Room
-            </button>
-            <button
-              className={`btn ${
-                isJoinRoom ? "btn-secondary" : "btn-ghost"
-              } btn-xs`}
-              onClick={() => setIsJoinRoom(true)}
-            >
-              Join Room
-            </button>
-          </div>
-          {isJoinRoom ? (
-            <div className="flex flex-col gap-4">
-              <div className="label">
-                <span className="label-text">Enter your name:</span>
-              </div>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                className="input input-bordered input-sm"
+              {/* sliding indicator */}
+              <span
+                aria-hidden="true"
+                className="absolute top-1/2 left-1 w-1/2 h-8 rounded-full bg-primary transition-transform duration-200 ease-in-out"
+                style={{
+                  transform: isJoinRoom
+                    ? "translateX(100%) translateY(-50%)"
+                    : "translateX(0) translateY(-50%)",
+                  boxShadow: "0 6px 14px rgba(37,99,235,0.10)",
+                }}
               />
-              <div className="label">
-                <span className="label-text">Enter room key:</span>
-              </div>
-              <input
-                type="text"
-                value={roomKey}
-                onChange={(e) => setRoomKey(e.target.value)}
-                className="input input-bordered input-sm"
-              />
+
               <button
-                className="btn btn-primary btn-sm"
-                onClick={handleJoinRoom}
+                type="button"
+                role="tab"
+                aria-pressed={!isJoinRoom}
+                onClick={() => setIsJoinRoom(false)}
+                className={`relative z-10 flex-1 text-sm font-medium py-1 px-2 rounded-full focus:outline-none transition-colors duration-150 ${
+                  !isJoinRoom ? "text-white" : "text-neutral"
+                }`}
+              >
+                Create Room
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-pressed={isJoinRoom}
+                onClick={() => setIsJoinRoom(true)}
+                className={`relative z-10 flex-1 text-sm font-medium py-1 px-2 rounded-full focus:outline-none transition-colors duration-150 ${
+                  isJoinRoom ? "text-white" : "text-neutral"
+                }`}
               >
                 Join Room
               </button>
             </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <div className="label">
-                <span className="label-text">Enter your name:</span>
-              </div>
+          </div>
+
+          {/* Form */}
+          <div className="space-y-4">
+            <div>
+              <label className="label">
+                <span className="label-text text-sm text-neutral">
+                  Enter your name
+                </span>
+              </label>
               <input
                 type="text"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                className="input input-bordered input-sm"
+                className="input input-bordered w-full input-md"
+                placeholder="Your display name"
               />
-              <div className="label">
-                <span className="label-text">Topic:</span>
-              </div>
-              <input
-                type="text"
-                value={topic}
-                placeholder="Ex Sports, Politics"
-                onChange={(e) => setTopic(e.target.value)}
-                className="input input-bordered input-sm"
-              />
-              <div
-                role="tablist"
-                className="flex items-center gap-x-2 tabs-sm mt-2 mb-2"
-              >
-                <div className="label flex-shrink-0">
-                  <span className="label-text text-sm font-medium">
-                    Select mode:
-                  </span>
-                </div>
-                <div className="tooltip" data-tip="Debate via text">
-                  <label className="cursor-pointer">
-                    <input
-                      type="radio"
-                      name="mode"
-                      value="TEXT"
-                      className="hidden peer"
-                      checked={mode === "Text"}
-                      onChange={() => setMode(DebateModes.TEXT)}
-
-                    />
-                    <div className="tab rounded-lg text-white font-medium peer-checked:bg-[#FFA500] peer-checked:text-black">
-                      Text
-                    </div>
-                  </label>
-                </div>
-                <div className="tooltip" data-tip="Debate via voice">
-                  <label className="cursor-pointer">
-                    <input
-                      type="radio"
-                      name="mode"
-                      value="VOICE"
-                      className="hidden peer"
-                      checked={mode === "Voice"}
-                      onChange={() => setMode(DebateModes.VOICE)}
-                    />
-                    <div className="tab rounded-lg text-white font-medium peer-checked:bg-[#FFA500] peer-checked:text-black">
-                      Voice
-                    </div>
-                  </label>
-                </div>
-              </div>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleCreateRoom}
-              >
-                Create Room
-              </button>
             </div>
-          )}
+
+            {isJoinRoom ? (
+              <>
+                <div>
+                  <label className="label">
+                    <span className="label-text text-sm text-neutral">
+                      Enter room key
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={roomKey}
+                    onChange={(e) => setRoomKey(e.target.value)}
+                    className="input input-bordered w-full input-md"
+                    placeholder="Room key"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleJoinRoom}
+                  >
+                    Join Room
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="label">
+                    <span className="label-text text-sm text-neutral">
+                      Topic
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="Ex: Sports, Politics"
+                    className="input input-bordered w-full input-md"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-neutral font-medium">
+                      Select mode:
+                    </span>
+
+                    {/* Mode segmented control (same sliding-pill pattern) */}
+                    <div
+                      role="tablist"
+                      aria-label="Select mode"
+                      className="relative inline-flex items-center bg-white border border-gray-200 rounded-full p-1 w-40"
+                      style={{ height: 36 }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="absolute top-1/2 left-1 w-1/2 h-8 rounded-full bg-primary transition-transform duration-200 ease-in-out"
+                        style={{
+                          transform:
+                            mode === "Voice"
+                              ? "translateX(100%) translateY(-50%)"
+                              : "translateX(0) translateY(-50%)",
+                          boxShadow: "0 6px 14px rgba(37,99,235,0.10)",
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-pressed={mode === "Text"}
+                        onClick={() => setMode(DebateModes.TEXT)}
+                        className={`relative z-10 flex-1 text-sm font-medium py-1 px-2 rounded-full focus:outline-none transition-colors duration-150 ${
+                          mode === "Text" ? "text-white" : "text-neutral"
+                        }`}
+                      >
+                        Text
+                      </button>
+
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-pressed={mode === "Voice"}
+                        onClick={() => setMode(DebateModes.VOICE)}
+                        className={`relative z-10 flex-1 text-sm font-medium py-1 px-2 rounded-full focus:outline-none transition-colors duration-150 ${
+                          mode === "Voice" ? "text-white" : "text-neutral"
+                        }`}
+                      >
+                        Voice
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleCreateRoom}
+                    >
+                      Create Room
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="mt-6 text-center text-xs text-muted">
+            By creating a room you agree to our{" "}
+            <span className="underline">community guidelines</span>.
+          </div>
         </div>
       </div>
-      <Guide />
     </>
   );
 }

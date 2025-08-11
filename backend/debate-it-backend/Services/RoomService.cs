@@ -104,6 +104,24 @@ public class RoomService
 
 		return response;
 	}
-	
-	
+
+	// Method to get all players in a room by room key
+	public async Task<List<Player>> GetPlayersInRoomAsync(string roomKey)
+	{
+		try
+		{
+			var response = await _supabaseClient
+				.From<Player>()
+				.Where(x => x.room_key == roomKey)
+				.Get();
+
+			return response.Models ?? new List<Player>();
+		}
+		catch (Exception)
+		{
+			return new List<Player>(); // return empty list if there's an error
+		}
+	}
+
+
 }
