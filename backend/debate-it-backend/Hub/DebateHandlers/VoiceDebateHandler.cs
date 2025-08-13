@@ -32,6 +32,7 @@ namespace debate_it_backend.Hub.DebateHandlers
 		IHubCallerClients<IRoomClient> clients)
 		{
 			int turnsLeft = 0;
+			bool isGameOverFlag = false;
 			lock (_debateRecords)
 			{
 				if (!_debateRecords.TryGetValue(roomKey, out var entries))
@@ -51,7 +52,16 @@ namespace debate_it_backend.Hub.DebateHandlers
 
 					// Calculate turns left for the user (MAX TURNS 5)
 					turnsLeft = Math.Max(0, 5 - entries.Count(e => e.UserEmail == userEmail));
-				}
+
+                    var userCounts = entries
+                    .GroupBy(e => e.UserEmail)
+                    .Select(g => new { User = g.Key, Count = g.Count() });
+
+                    if (userCounts.All(u => u.Count >= 5))
+                    {
+                        isGameOverFlag = true;
+                    }
+                }
 			}
 
 			List<DebateEntry> debates;
@@ -65,7 +75,8 @@ namespace debate_it_backend.Hub.DebateHandlers
 			{
 				UserEmail = userEmail,
 				TurnsLeft = turnsLeft,
-				DebateEntries = debates
+				DebateEntries = debates,
+				isGameOverFlag = isGameOverFlag
 			};
 
 			await clients.Groups(roomKey).SavedTranscript(notification);

@@ -142,13 +142,15 @@ export default function TextDebate({
         {/* Topic card (clean, professional) */}
         <div className="w-full bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between gap-4">
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs text-gray-500 uppercase tracking-wide">Topic</p>
-              <p className="mt-1 text-base sm:text-lg font-semibold text-neutral-800 truncate">
-                {debateTopic}
+              <p className="mt-1 text-base sm:text-lg font-semibold text-neutral-800 break-words whitespace-normal" title={debateTopic}>
+               Professional athletes are overpaid and do not contribute enough to society to justify their exorbitant salaries. Professional athletes are overpaid and do not contribute enough to society to justify their exorbitant salaries.
+
+
               </p>
             </div>
-            <div className="text-sm text-gray-500 truncate">{roomKey ? `Room: ${roomKey}` : ""}</div>
+            {/* <div className="text-sm text-gray-500 truncate">{roomKey ? `Room: ${roomKey}` : ""}</div> */}
           </div>
         </div>
 
@@ -165,13 +167,12 @@ export default function TextDebate({
               return (
                 <li
                   key={index}
-                  className={`max-w-full break-words p-3 rounded-lg transition ${
-                    isSpeakerMessage
+                  className={`max-w-full break-words p-3 rounded-lg transition ${isSpeakerMessage
                       ? "bg-white border-l-4 border-primary/60"
                       : isOwn
-                      ? "bg-primary/10"
-                      : "bg-white"
-                  }`}
+                        ? "bg-primary/10"
+                        : "bg-white"
+                    }`}
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <div className="text-sm font-medium text-neutral-800">{getUserName(item.userEmail)}</div>
@@ -216,7 +217,7 @@ export default function TextDebate({
 
         {/* Input for active speaker */}
         {userEmail === speaker && (
-          <div className="flex flex-col sm:flex-row items-end gap-3 w-full mt-3">
+          <div className="flex flex-col sm:flex-row items-end gap-3 w-full mt-3 mb-5">
             <label htmlFor="debate-input" className="sr-only">
               Type your argument
             </label>
@@ -258,16 +259,14 @@ export default function TextDebate({
             return (
               <div
                 key={player.id}
-                className={`flex items-center gap-3 p-2 rounded-lg transition ${
-                  isCurrentSpeaker ? "bg-white" : "hover:bg-gray-50"
-                }`}
+                className={`flex items-center gap-3 p-2 rounded-lg transition ${isCurrentSpeaker ? "bg-white" : "hover:bg-gray-50"
+                  }`}
                 role="listitem"
               >
                 {/* avatar (initials) */}
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                    isCurrentSpeaker ? "bg-primary text-white" : "bg-blue-500 text-white"
-                  }`}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${isCurrentSpeaker ? "bg-primary text-white" : "bg-blue-500 text-white"
+                    }`}
                 >
                   {player.name ? player.name.charAt(0).toUpperCase() : "?"}
                 </div>
@@ -281,7 +280,7 @@ export default function TextDebate({
 
                 {/* speaking badge only (no ring/shadow/border) */}
                 {isCurrentSpeaker && (
-                  <div className="ml-2 px-2 py-0.5 rounded-full bg-primary text-white text-xs font-semibold animate-pulse">
+                  <div className="ml-2 px-2 py-1 rounded-full bg-primary text-white text-xs font-semibold animate-pulse">
                     Speaking
                   </div>
                 )}
@@ -310,9 +309,8 @@ export default function TextDebate({
 
           {/* sliding panel from left */}
           <div
-            className={`relative z-10 w-11/12 max-w-xs h-full bg-white shadow-2xl transform transition-transform duration-300 ease-out ${
-              showParticipants ? "translate-x-0" : "-translate-x-full"
-            }`}
+            className={`relative z-10 w-11/12 max-w-xs h-full bg-white shadow-2xl transform transition-transform duration-300 ease-out ${showParticipants ? "translate-x-0" : "-translate-x-full"
+              }`}
           >
             <div className="p-4 flex items-center justify-between border-b">
               <h3 className="text-lg font-semibold">Participants</h3>
@@ -327,9 +325,8 @@ export default function TextDebate({
                 return (
                   <div key={player.id} className="flex items-center gap-3 p-2 rounded-lg">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                        isCurrentSpeaker ? "bg-primary text-white" : "bg-blue-500 text-white"
-                      }`}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${isCurrentSpeaker ? "bg-primary text-white" : "bg-blue-500 text-white"
+                        }`}
                     >
                       {player.name ? player.name.charAt(0).toUpperCase() : "?"}
                     </div>

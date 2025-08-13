@@ -32,7 +32,6 @@ namespace debate_it_backend.Hub
 			_geminiService = geminiService ?? throw new ArgumentNullException(nameof(geminiService));
 		}
 
-		// Modified to use the strategy pattern
 		public async Task StartGame(string roomKey)
 		{
 			// Get room details from database
@@ -51,7 +50,6 @@ namespace debate_it_backend.Hub
 			await handler.StartDebate(roomKey, topic, Clients, userEmails);
 		}
 
-		// Modified to use the strategy pattern
 		public async Task ReceiveSpeechTranscript(string roomKey, string userEmail, string debateTranscript)
 		{
 			// Get or create handler for this room
@@ -185,18 +183,5 @@ namespace debate_it_backend.Hub
 
 			}
 		}
-
-		private void RemoveRoomConnections(string roomKey)
-		{
-			lock (_connections)
-			{
-				var usersInRoom = _connections.GetConnectionsByRoomKey(roomKey);
-				foreach (var user in usersInRoom)
-				{
-					_connections.Remove(user.ConnectionId);
-				}
-			}
-		}
-
 	}
 }

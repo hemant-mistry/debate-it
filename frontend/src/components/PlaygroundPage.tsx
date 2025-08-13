@@ -17,6 +17,7 @@ interface Notification {
   userEmail: string;
   debateEntries: DebateEntry[];
   turnsLeft: number;
+  isGameOverFlag: boolean;
 }
 
 interface DebateEntry {
@@ -54,6 +55,8 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
   const [thread, setThread] = useState<DebateEntry[]>([]);
   const [mode, setMode] = useState<DebateModeType>(DebateModes.VOICE);
   const [textSpeaker, setTextSpeaker] = useState<string>("");
+  const [showSpinner, setShowSpinner] = useState<boolean>(false);
+
   const [tooltipText, setTooltipText] = useState("Copy to Clipboard");
   const threadContainerRef = useRef<HTMLDivElement>(null);
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
@@ -93,6 +96,7 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
 
       signalRConnection.on("SendDebateScores", (debateScores: string) => {
         console.log("Received debateScores:", debateScores);
+        setShowSpinner(false);
         setIsGameOver(true);
         try {
           // Parse the JSON string into an array of score entries
@@ -113,6 +117,9 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
             debateTranscript: entry.debateTranscript,
           }))
         );
+        if (notification.isGameOverFlag) {
+          setShowSpinner(true);
+        }
       });
     }
   }, [signalRConnection]);
@@ -264,8 +271,8 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
     }
   };
 
-  const handleTextSendButton = () =>{
-    if(signalRConnection){
+  const handleTextSendButton = () => {
+    if (signalRConnection) {
       signalRConnection.invoke(
         "ReceiveSpeechTranscript",
         roomKey,
@@ -292,34 +299,55 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
 
     return (
       <div className="flex flex-col w-full max-w-md mx-auto mt-12 px-4 sm:px-0">
-        <h2 className="text-3xl sm:text-4xl font-semibold mb-2 text-center text-neutral">Leaderboard</h2>
+        <h2 className="text-3xl sm:text-4xl font-semibold mb-2 text-center text-gray-800">
+          Leaderboard
+        </h2>
+
         {/* Info text to guide users */}
-        <p className="text-center text-sm sm:text-base text-gray-500 mb-4">
+        <p className="text-center text-sm sm:text-base text-gray-600 mb-4">
           Click the arrow next to each name to view why they won the debate.
         </p>
-        <div className="bg-white rounded-box shadow-md overflow-hidden">
+
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
           {sortedScores.map((score, index) => (
             <div
               key={index}
               tabIndex={0}
-              className="collapse collapse-arrow border-b last:border-b-0 border-gray-200"
+              className="collapse collapse-arrow border-b last:border-b-0 border-gray-200 hover:bg-gray-50 transition-colors"
             >
-              <div className="collapse-title flex justify-between items-center p-4 pr-10">
-                <span className="font-medium text-sm sm:text-base truncate text-neutral">{getUserName(score.UserEmail)}</span>
-                <span className="text-xl sm:text-2xl font-bold text-neutral">{score.Score}</span>
+              <div className="collapse-title flex justify-between items-center p-4 pr-10 text-gray-800">
+                <span className="font-medium text-sm sm:text-base truncate">
+                  {getUserName(score.UserEmail)}
+                </span>
+                <span className="text-xl sm:text-2xl font-bold">{score.Score}</span>
               </div>
-              <div className="collapse-content bg-base-100 px-4 pb-4">
-                <p className="text-sm sm:text-base text-[#FFA500]">{score.Reason}</p>
+              <div className="collapse-content bg-gray-50 px-4 pb-4">
+                <p className="text-sm sm:text-base text-orange-600">
+                  {score.Reason}
+                </p>
               </div>
             </div>
           ))}
         </div>
 
         <div className="flex justify-center mt-6">
-          <button className="btn btn-primary w-full sm:w-auto" onClick={handlePlayAgain}>
+          <button
+            className="btn btn-primary w-full sm:w-auto shadow-md"
+            onClick={handlePlayAgain}
+          >
             Play Again
           </button>
         </div>
+      </div>
+
+    );
+  }
+
+  if (showSpinner) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen">
+        <span className="mb-4 text-lg text-primary">Cooking results...</span>
+        <span className="loading loading-spinner loading-lg text-primary mb-10"></span>
       </div>
     );
   }
@@ -343,16 +371,16 @@ function PlaygroundPage({ signalRConnection }: PlaygroundPageProps) {
         />
       ) : isGameStarted && mode == DebateModes.TEXT ? (
         <TextDebate
-            debateTopic={debateTopic || ""}
-            threadContainerRef={threadContainerRef}
-            thread={thread}
-            text={text || ""}
-            speaker={textSpeaker}
-            notification={notification || null}
-            userEmail={userEmail || ""}
-            handleTextSendButton={handleTextSendButton}
-            setText={setText}
-            getUserName={getUserName}   />
+          debateTopic={debateTopic || ""}
+          threadContainerRef={threadContainerRef}
+          thread={thread}
+          text={text || ""}
+          speaker={textSpeaker}
+          notification={notification || null}
+          userEmail={userEmail || ""}
+          handleTextSendButton={handleTextSendButton}
+          setText={setText}
+          getUserName={getUserName} />
       ) : (
         <div className="scenario flex flex-col justify-center items-center py-12">
           <div className="room-code-container w-full max-w-md px-4">

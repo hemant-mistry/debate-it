@@ -3,6 +3,8 @@ using debate_it_backend.Models;
 using debate_it_backend.Services;
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
+using System.Reactive;
+using Notification = debate_it_backend.Models.Notification;
 
 namespace debate_it_backend.Hub.DebateHandlers
 {
@@ -34,8 +36,9 @@ namespace debate_it_backend.Hub.DebateHandlers
 			var entries = _debateRecords.GetOrAdd(roomKey, _ => new List<DebateEntry>());
 
 			int turnsLeft = 0;
+            bool isGameOverFlag = false;
 
-			lock (entries)
+            lock (entries)
 			{
 				entries.Add(new DebateEntry
 				{
@@ -45,7 +48,16 @@ namespace debate_it_backend.Hub.DebateHandlers
 				});
 
 				turnsLeft = Math.Max(0, 5 - entries.Count(e => e.UserEmail == userEmail));
-			}
+
+                var userCounts = entries
+					.GroupBy(e => e.UserEmail)
+					.Select(g => new { User = g.Key, Count = g.Count() });
+
+                if (userCounts.All(u => u.Count >= 5))
+                {
+                    isGameOverFlag = true;
+                }
+            }
 
 			List<DebateEntry> debates;
 
@@ -58,7 +70,8 @@ namespace debate_it_backend.Hub.DebateHandlers
 			{
 				UserEmail = userEmail,
 				TurnsLeft = turnsLeft,
-				DebateEntries = debates
+				DebateEntries = debates,
+                isGameOverFlag = isGameOverFlag
 			};
 
 			await clients.Groups(roomKey).SavedTranscript(notification);

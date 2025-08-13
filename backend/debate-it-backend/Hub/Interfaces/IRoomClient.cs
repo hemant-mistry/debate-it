@@ -15,5 +15,6 @@ namespace debate_it_backend.Hub.Interfaces
 		Task SavedTranscript(Notification notification);
 		Task SendDebateScores(string debateScores);
 		Task SendCurrentUser(string userEmail);
+		Task SendGameStatus(bool isGameOverFlag);
 	}
 }
