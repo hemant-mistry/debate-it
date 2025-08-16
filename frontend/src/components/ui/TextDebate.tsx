@@ -145,7 +145,7 @@ export default function TextDebate({
             <div className="flex-1 min-w-0">
               <p className="text-xs text-gray-500 uppercase tracking-wide">Topic</p>
               <p className="mt-1 text-base sm:text-lg font-semibold text-neutral-800 break-words whitespace-normal" title={debateTopic}>
-               Professional athletes are overpaid and do not contribute enough to society to justify their exorbitant salaries. Professional athletes are overpaid and do not contribute enough to society to justify their exorbitant salaries.
+                {debateTopic}
 
 
               </p>
